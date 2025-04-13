@@ -12,10 +12,11 @@ The generator examines your schema's constraints and creates meaningful test sce
 
 - **Automated Test Generation**: Eliminates manual test case creation for XML schemas
 - **Comprehensive Constraint Testing**:
-  - Cardinality constraints (`minOccurs`/`maxOccurs`) 
+  - Cardinality constraints (`minOccurs`/`maxOccurs`)
   - Enumeration validation (fixed value sets)
 - **Namespace Support**: Correctly handles XML namespaces in generated test files
 - **Schema Resolution**: Processes included and imported schemas
+- **Accurate Reference Resolution**: All required children for referenced elements are now included in generated XML, ensuring valid test files for schemas using `<element ref="...">`.
 - **Validation Verification**: Tests generated files against the schema
 - **Organized Output**: Categorizes test files by type and expected result
 
@@ -36,6 +37,7 @@ The test generator uses a modular architecture for better maintainability:
 | `TestXmlGenerator.java` | Generates XML test files based on schema constraints |
 | `CardinalityTestGenerator.java` | Generates tests for cardinality constraints |
 | `EnumerationTestGenerator.java` | Generates tests for enumeration constraints |
+| `XmlValueHelper.java` | Utility for generating attribute and element values based on schema type or enumeration |
 
 ## Installation
 

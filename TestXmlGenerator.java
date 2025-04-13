@@ -9,70 +9,97 @@ public class TestXmlGenerator {
     
     private XMLSchemaTestGenerator generator;
     private SchemaParser schemaParser;
+    private XmlValueHelper xmlValueHelper;
     
     public TestXmlGenerator(XMLSchemaTestGenerator generator, SchemaParser schemaParser) {
         this.generator = generator;
         this.schemaParser = schemaParser;
+        this.xmlValueHelper = new XmlValueHelper(schemaParser);
     }
     
     /**
-     * Generate XML for testing cardinality constraints
-     */
-    public String generateTestXml(String parentName, List<ElementInfo> allChildElements, 
-                                 String targetChildName, int occurrences, boolean isReference, String namespace) {
-        StringBuilder xml = new StringBuilder();
-        xml.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
-        
-        // Extract prefix and local name
-        String parentPrefix = generator.getDefaultNamespacePrefix();
-        
-        // Add root element with namespace declarations
-        if (namespace != null && !namespace.isEmpty()) {
-            xml.append("<").append(parentPrefix).append(":").append(parentName);
-            
-            // Add all namespace declarations
-            for (Map.Entry<String, String> entry : generator.getNamespaceMap().entrySet()) {
-                xml.append(" xmlns:").append(entry.getKey())
-                   .append("=\"").append(entry.getValue()).append("\"");
-            }
-            
-            xml.append(">\n");
-        } else {
-            xml.append("<").append(parentName).append(">\n");
-        }
-        
-        // Add child elements in the required sequence
-        for (ElementInfo childInfo : allChildElements) {
-            String childName = childInfo.name;
-            
-            // Skip elements we're not testing in this case and maintain the right sequence
-            if (!childName.equals(targetChildName)) {
-                // Add a single instance of non-target elements to satisfy minimum requirements
-                if (childInfo.minOccurs > 0) {
-                    addCompleteElementInstance(xml, childName, childInfo.isReference, 1, namespace);
-                }
-                continue;
-            }
-            
-            // For the target element, add the specified number of occurrences
-            addCompleteElementInstance(xml, childName, isReference, occurrences, namespace);
-        }
-        
-        // Close parent element
-        if (namespace != null && !namespace.isEmpty()) {
-            xml.append("</").append(parentPrefix).append(":").append(parentName).append(">\n");
-        } else {
-            xml.append("</").append(parentName).append(">\n");
-        }
-        
-        return xml.toString();
-    }
-    
+     /**
+      * Generate XML for testing cardinality constraints
+      */
+     public String generateTestXml(String parentName, List<ElementInfo> allChildElements,
+                                   String targetChildName, int occurrences, boolean isReference, String namespace, Element parentSchemaElement) {
+         StringBuilder xml = new StringBuilder();
+         xml.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+         
+         // Extract prefix and local name
+         String parentPrefix = generator.getDefaultNamespacePrefix();
+         
+         // Add root element with namespace declarations
+         if (namespace != null && !namespace.isEmpty()) {
+             xml.append("<").append(parentPrefix).append(":").append(parentName);
+             
+             // Add all namespace declarations
+             for (Map.Entry<String, String> entry : generator.getNamespaceMap().entrySet()) {
+                 xml.append(" xmlns:").append(entry.getKey())
+                    .append("=\"").append(entry.getValue()).append("\"");
+             }
+             
+             xml.append(">\n");
+         } else {
+             xml.append("<").append(parentName).append(">\n");
+         }
+         
+         // Add child elements in the required sequence
+         for (ElementInfo childInfo : allChildElements) {
+             String childName = childInfo.name;
+             // Find the schemaElement for this child
+             Element childSchemaElement = null;
+             if (parentSchemaElement != null) {
+                 Element complexType = generator.findChildElement(parentSchemaElement, "complexType");
+                 if (complexType != null) {
+                     Element sequence = generator.findChildElement(complexType, "sequence");
+                     if (sequence != null) {
+                         org.w3c.dom.NodeList elements = sequence.getElementsByTagNameNS(javax.xml.XMLConstants.W3C_XML_SCHEMA_NS_URI, "element");
+                         for (int i = 0; i < elements.getLength(); i++) {
+                             Element el = (Element) elements.item(i);
+                             String name = el.getAttribute("name");
+                             String ref = el.getAttribute("ref");
+                             if ((!name.isEmpty() && name.equals(childName)) || (!ref.isEmpty() && ref.equals(childName))) {
+                                 childSchemaElement = el;
+                                 break;
+                             }
+                         }
+                     }
+                 }
+             }
+             // Fallback to global element definition if not found inline
+             if (childSchemaElement == null && generator.getGlobalElementDefinitions().containsKey(childName)) {
+                 childSchemaElement = generator.getGlobalElementDefinitions().get(childName);
+             }
+             
+             // Skip elements we're not testing in this case and maintain the right sequence
+             if (!childName.equals(targetChildName)) {
+                 // Add a single instance of non-target elements to satisfy minimum requirements
+                 if (childInfo.minOccurs > 0) {
+                     addCompleteElementInstance(xml, childName, childInfo.isReference, 1, namespace, childSchemaElement);
+                 }
+                 continue;
+             }
+             
+             // For the target element, add the specified number of occurrences
+             addCompleteElementInstance(xml, childName, isReference, occurrences, namespace, childSchemaElement);
+         }
+         
+         // Close parent element
+         if (namespace != null && !namespace.isEmpty()) {
+             xml.append("</").append(parentPrefix).append(":").append(parentName).append(">\n");
+         } else {
+             xml.append("</").append(parentName).append(">\n");
+         }
+         
+         return xml.toString();
+     }
     /**
      * Add complete element instances with appropriate structure based on element name
      */
-    public void addCompleteElementInstance(StringBuilder xml, String elementName, boolean isReference, 
-                                           int count, String namespace) {
+    // Updated to accept schemaElement for correct reference resolution
+    public void addCompleteElementInstance(StringBuilder xml, String elementName, boolean isReference,
+                                           int count, String namespace, Element schemaElement) {
         // Extract prefix and local name
         String prefix = generator.getDefaultNamespacePrefix();
         String localName = elementName;
@@ -88,49 +115,35 @@ public class TestXmlGenerator {
             elementNamespace = generator.getNamespaceMap().get(prefix);
         }
         
-        // Check if this is a global element
-        boolean isGlobalElement = generator.getGlobalElementDefinitions().containsKey(localName);
-        
         for (int i = 0; i < count; i++) {
-            // Get the schema Element for this element
-            Element schemaElement = generator.getGlobalElementDefinitions().get(localName);
-            if (schemaElement == null) {
-                // Try to find in child lists
-                for (Element e : generator.getGlobalElementDefinitions().values()) {
-                    if (e.getAttribute("name").equals(localName)) {
-                        schemaElement = e;
-                        break;
+            // Reference resolution: if isReference, resolve to global element definition
+            Element effectiveSchemaElement = schemaElement;
+            if (isReference && schemaElement != null) {
+                // If schemaElement is a reference, resolve to the global element it points to
+                String refName = schemaElement.getAttribute("ref");
+                if (!refName.isEmpty()) {
+                    String refLocal = refName.contains(":") ? refName.split(":")[1] : refName;
+                    if (generator.getGlobalElementDefinitions().containsKey(refLocal)) {
+                        effectiveSchemaElement = generator.getGlobalElementDefinitions().get(refLocal);
                     }
                 }
+            }
+            // If not found, fallback to global element by localName
+            if (effectiveSchemaElement == null && generator.getGlobalElementDefinitions().containsKey(localName)) {
+                effectiveSchemaElement = generator.getGlobalElementDefinitions().get(localName);
             }
 
             // Prepare attributes string (handle enumerations for attributes if needed)
             StringBuilder attrBuilder = new StringBuilder();
-            if (schemaElement != null) {
+            if (effectiveSchemaElement != null) {
                 // Handle attributes
-                Element complexType = generator.findChildElement(schemaElement, "complexType");
+                Element complexType = generator.findChildElement(effectiveSchemaElement, "complexType");
                 if (complexType != null) {
                     NodeList attributes = complexType.getElementsByTagNameNS(javax.xml.XMLConstants.W3C_XML_SCHEMA_NS_URI, "attribute");
                     for (int a = 0; a < attributes.getLength(); a++) {
                         Element attrElem = (Element) attributes.item(a);
                         String attrName = attrElem.getAttribute("name");
-                        List<String> attrEnums = schemaParser.findEnumerationValues(attrElem);
-                        String attrValue;
-                        if (!attrEnums.isEmpty()) {
-                            attrValue = attrEnums.get(0);
-                        } else {
-                            // Use a generic value based on type
-                            String type = attrElem.getAttribute("type");
-                            if (type.endsWith("string")) {
-                                attrValue = "SampleString";
-                            } else if (type.endsWith("gYear")) {
-                                attrValue = "2020";
-                            } else if (type.endsWith("int") || type.endsWith("integer")) {
-                                attrValue = "1";
-                            } else {
-                                attrValue = "SampleValue";
-                            }
-                        }
+                        String attrValue = xmlValueHelper.getAttributeValue(attrElem);
                         attrBuilder.append(" ").append(attrName).append("=\"").append(attrValue).append("\"");
                     }
                 }
@@ -140,8 +153,8 @@ public class TestXmlGenerator {
             boolean isSimpleType = false;
             // Use SchemaParser to get children for this element (handles inline complex types)
             List<ElementInfo> children = new ArrayList<>();
-            if (schemaElement != null) {
-                children = schemaParser.findChildElements(schemaElement);
+            if (effectiveSchemaElement != null) {
+                children = schemaParser.findChildElements(effectiveSchemaElement);
             }
 
             // Try to find ElementInfo for this element
@@ -187,32 +200,35 @@ public class TestXmlGenerator {
                 // Complex type: always add all required children recursively, no text content
                 for (ElementInfo child : children) {
                     int childCount = Math.max(child.minOccurs, 1); // Always at least 1
-                    addCompleteElementInstance(xml, child.name, child.isReference, childCount, elementNamespace);
+                    // Find schemaElement for child
+                    Element childSchemaElement = null;
+                    if (effectiveSchemaElement != null) {
+                        Element complexType = generator.findChildElement(effectiveSchemaElement, "complexType");
+                        if (complexType != null) {
+                            Element sequence = generator.findChildElement(complexType, "sequence");
+                            if (sequence != null) {
+                                NodeList elements = sequence.getElementsByTagNameNS(javax.xml.XMLConstants.W3C_XML_SCHEMA_NS_URI, "element");
+                                for (int j = 0; j < elements.getLength(); j++) {
+                                    Element el = (Element) elements.item(j);
+                                    String name = el.getAttribute("name");
+                                    String ref = el.getAttribute("ref");
+                                    if ((!name.isEmpty() && name.equals(child.name)) || (!ref.isEmpty() && ref.equals(child.name))) {
+                                        childSchemaElement = el;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    // Fallback to global element definition if not found inline
+                    if (childSchemaElement == null && generator.getGlobalElementDefinitions().containsKey(child.name)) {
+                        childSchemaElement = generator.getGlobalElementDefinitions().get(child.name);
+                    }
+                    addCompleteElementInstance(xml, child.name, child.isReference, childCount, elementNamespace, childSchemaElement);
                 }
             } else if (isSimpleType) {
                 // Only add text content for simple types with no children
-                String value = null;
-                // Use enumeration value if present
-                if (schemaElement != null) {
-                    List<String> enums = schemaParser.findEnumerationValues(schemaElement);
-                    if (!enums.isEmpty()) {
-                        value = enums.get(0);
-                    }
-                }
-                if (value == null && schemaElement != null) {
-                    // Use type to generate a value
-                    String type = schemaElement.getAttribute("type");
-                    if (type.endsWith("string")) {
-                        value = "SampleString";
-                    } else if (type.endsWith("gYear")) {
-                        value = "2020";
-                    } else if (type.endsWith("int") || type.endsWith("integer")) {
-                        value = "1";
-                    } else {
-                        value = "SampleValue";
-                    }
-                }
-                if (value == null) value = "SampleValue";
+                String value = xmlValueHelper.getElementValue(effectiveSchemaElement);
                 xml.append("    ").append(value).append("\n");
             }
             // Close the element
