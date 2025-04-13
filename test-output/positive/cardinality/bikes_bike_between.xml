@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<vh:bikes xmlns:vh="http://example.com/vehicles" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <vh:bike>
+    TestValue1
+  </vh:bike>
+  <vh:bike>
+    TestValue2
+  </vh:bike>
+</vh:bikes>
