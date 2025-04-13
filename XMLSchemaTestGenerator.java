@@ -43,7 +43,7 @@ public class XMLSchemaTestGenerator {
     // In the XMLSchemaTestGenerator constructor:
     public XMLSchemaTestGenerator() {
         schemaParser = new SchemaParser(this);
-        xmlGenerator = new TestXmlGenerator(this);
+        xmlGenerator = new TestXmlGenerator(this, schemaParser);
         enumTestGenerator = new EnumerationTestGenerator(this);
         cardinalityTestGenerator = new CardinalityTestGenerator(this);
     }

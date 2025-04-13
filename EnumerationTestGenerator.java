@@ -16,8 +16,8 @@ public class EnumerationTestGenerator {
     
     public EnumerationTestGenerator(XMLSchemaTestGenerator generator) {
         this.generator = generator;
-        this.xmlGenerator = new TestXmlGenerator(generator);
         this.schemaParser = new SchemaParser(generator);
+        this.xmlGenerator = new TestXmlGenerator(generator, this.schemaParser);
     }
     
     /**

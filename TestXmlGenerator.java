@@ -1,5 +1,6 @@
 import java.util.*;
 import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
 
 /**
  * Class for generating XML test files
@@ -7,9 +8,11 @@ import org.w3c.dom.Element;
 public class TestXmlGenerator {
     
     private XMLSchemaTestGenerator generator;
+    private SchemaParser schemaParser;
     
-    public TestXmlGenerator(XMLSchemaTestGenerator generator) {
+    public TestXmlGenerator(XMLSchemaTestGenerator generator, SchemaParser schemaParser) {
         this.generator = generator;
+        this.schemaParser = schemaParser;
     }
     
     /**
@@ -89,39 +92,64 @@ public class TestXmlGenerator {
         boolean isGlobalElement = generator.getGlobalElementDefinitions().containsKey(localName);
         
         for (int i = 0; i < count; i++) {
-            // Special handling for "car" element to add required children and "type" attribute
-            if (localName.equals("car")) {
-                xml.append("  <").append(prefix).append(":").append(localName)
-                   .append(" type=\"sedan\">\n");
-                // Add required children with sample values
-                xml.append("    <").append(prefix).append(":make>").append("TestMake").append("</").append(prefix).append(":make>\n");
-                xml.append("    <").append(prefix).append(":model>").append("TestModel").append("</").append(prefix).append(":model>\n");
-                xml.append("    <").append(prefix).append(":year>").append("2020").append("</").append(prefix).append(":year>\n");
-                xml.append("  </").append(prefix).append(":").append(localName).append(">\n");
-                continue;
+            // Get the schema Element for this element
+            Element schemaElement = generator.getGlobalElementDefinitions().get(localName);
+            if (schemaElement == null) {
+                // Try to find in child lists
+                for (Element e : generator.getGlobalElementDefinitions().values()) {
+                    if (e.getAttribute("name").equals(localName)) {
+                        schemaElement = e;
+                        break;
+                    }
+                }
             }
-            // Special handling for "bike" element to add required children
-            if (localName.equals("bike")) {
-                xml.append("  <").append(prefix).append(":").append(localName).append(">\n");
-                xml.append("    <").append(prefix).append(":brand>").append("TestBrand").append("</").append(prefix).append(":brand>\n");
-                xml.append("    <").append(prefix).append(":type>").append("mountain").append("</").append(prefix).append(":type>\n");
-                xml.append("  </").append(prefix).append(":").append(localName).append(">\n");
-                continue;
+
+            // Prepare attributes string (handle enumerations for attributes if needed)
+            StringBuilder attrBuilder = new StringBuilder();
+            if (schemaElement != null) {
+                // Handle attributes
+                Element complexType = generator.findChildElement(schemaElement, "complexType");
+                if (complexType != null) {
+                    NodeList attributes = complexType.getElementsByTagNameNS(javax.xml.XMLConstants.W3C_XML_SCHEMA_NS_URI, "attribute");
+                    for (int a = 0; a < attributes.getLength(); a++) {
+                        Element attrElem = (Element) attributes.item(a);
+                        String attrName = attrElem.getAttribute("name");
+                        List<String> attrEnums = schemaParser.findEnumerationValues(attrElem);
+                        String attrValue;
+                        if (!attrEnums.isEmpty()) {
+                            attrValue = attrEnums.get(0);
+                        } else {
+                            // Use a generic value based on type
+                            String type = attrElem.getAttribute("type");
+                            if (type.endsWith("string")) {
+                                attrValue = "SampleString";
+                            } else if (type.endsWith("gYear")) {
+                                attrValue = "2020";
+                            } else if (type.endsWith("int") || type.endsWith("integer")) {
+                                attrValue = "1";
+                            } else {
+                                attrValue = "SampleValue";
+                            }
+                        }
+                        attrBuilder.append(" ").append(attrName).append("=\"").append(attrValue).append("\"");
+                    }
+                }
             }
 
             // Determine if this element is a simple type
             boolean isSimpleType = false;
-            List<ElementInfo> children = generator.getGlobalElementsMap().get(localName);
+            // Use SchemaParser to get children for this element (handles inline complex types)
+            List<ElementInfo> children = new ArrayList<>();
+            if (schemaElement != null) {
+                children = schemaParser.findChildElements(schemaElement);
+            }
 
             // Try to find ElementInfo for this element
             ElementInfo info = null;
-            // First, check if this is a global element definition
             if (generator.getGlobalElementDefinitions().containsKey(localName)) {
-                // If it has children in the globalElementsMap, it's a complex type
                 if (children != null && !children.isEmpty()) {
                     isSimpleType = false;
                 } else {
-                    // Otherwise, try to find ElementInfo in any child list
                     for (List<ElementInfo> childList : generator.getGlobalElementsMap().values()) {
                         for (ElementInfo e : childList) {
                             if (e.name.equals(localName)) {
@@ -134,12 +162,10 @@ public class TestXmlGenerator {
                     if (info != null) {
                         isSimpleType = info.isSimpleType;
                     } else {
-                        // If not found, default to false (complex type)
                         isSimpleType = false;
                     }
                 }
             } else {
-                // Not a global element, look up in child lists
                 for (List<ElementInfo> childList : generator.getGlobalElementsMap().values()) {
                     for (ElementInfo e : childList) {
                         if (e.name.equals(localName)) {
@@ -154,8 +180,9 @@ public class TestXmlGenerator {
                 }
             }
 
-            // Default handling for other elements
-            xml.append("  <").append(prefix).append(":").append(localName).append(">\n");
+            // Add opening tag with attributes if any
+            xml.append("  <").append(prefix).append(":").append(localName).append(attrBuilder).append(">\n");
+
             if (children != null && !children.isEmpty()) {
                 // Complex type: always add all required children recursively, no text content
                 for (ElementInfo child : children) {
@@ -164,7 +191,29 @@ public class TestXmlGenerator {
                 }
             } else if (isSimpleType) {
                 // Only add text content for simple types with no children
-                xml.append("    TestValue").append(i + 1).append("\n");
+                String value = null;
+                // Use enumeration value if present
+                if (schemaElement != null) {
+                    List<String> enums = schemaParser.findEnumerationValues(schemaElement);
+                    if (!enums.isEmpty()) {
+                        value = enums.get(0);
+                    }
+                }
+                if (value == null && schemaElement != null) {
+                    // Use type to generate a value
+                    String type = schemaElement.getAttribute("type");
+                    if (type.endsWith("string")) {
+                        value = "SampleString";
+                    } else if (type.endsWith("gYear")) {
+                        value = "2020";
+                    } else if (type.endsWith("int") || type.endsWith("integer")) {
+                        value = "1";
+                    } else {
+                        value = "SampleValue";
+                    }
+                }
+                if (value == null) value = "SampleValue";
+                xml.append("    ").append(value).append("\n");
             }
             // Close the element
             xml.append("  </").append(prefix).append(":").append(localName).append(">\n");

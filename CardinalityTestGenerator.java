@@ -11,7 +11,7 @@ public class CardinalityTestGenerator {
     
     public CardinalityTestGenerator(XMLSchemaTestGenerator generator) {
         this.generator = generator;
-        this.xmlGenerator = new TestXmlGenerator(generator);
+        this.xmlGenerator = new TestXmlGenerator(generator, new SchemaParser(generator));
     }
     
     /**
