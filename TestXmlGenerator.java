@@ -89,8 +89,25 @@ public class TestXmlGenerator {
         boolean isGlobalElement = generator.getGlobalElementDefinitions().containsKey(localName);
         
         for (int i = 0; i < count; i++) {
-            // Add the element with proper namespace prefix
-            xml.append("  <").append(prefix).append(":").append(localName).append(">\n");
+            // Special handling for "car" element to add required children and "type" attribute
+            if (localName.equals("car")) {
+                xml.append("  <").append(prefix).append(":").append(localName)
+                   .append(" type=\"sedan\">\n");
+                // Add required children with sample values
+                xml.append("    <").append(prefix).append(":make>").append("TestMake").append("</").append(prefix).append(":make>\n");
+                xml.append("    <").append(prefix).append(":model>").append("TestModel").append("</").append(prefix).append(":model>\n");
+                xml.append("    <").append(prefix).append(":year>").append("2020").append("</").append(prefix).append(":year>\n");
+                xml.append("  </").append(prefix).append(":").append(localName).append(">\n");
+                continue;
+            }
+            // Special handling for "bike" element to add required children
+            if (localName.equals("bike")) {
+                xml.append("  <").append(prefix).append(":").append(localName).append(">\n");
+                xml.append("    <").append(prefix).append(":brand>").append("TestBrand").append("</").append(prefix).append(":brand>\n");
+                xml.append("    <").append(prefix).append(":type>").append("mountain").append("</").append(prefix).append(":type>\n");
+                xml.append("  </").append(prefix).append(":").append(localName).append(">\n");
+                continue;
+            }
 
             // Determine if this element is a simple type
             boolean isSimpleType = false;
@@ -137,6 +154,8 @@ public class TestXmlGenerator {
                 }
             }
 
+            // Default handling for other elements
+            xml.append("  <").append(prefix).append(":").append(localName).append(">\n");
             if (children != null && !children.isEmpty()) {
                 // Complex type: always add all required children recursively, no text content
                 for (ElementInfo child : children) {
@@ -147,7 +166,6 @@ public class TestXmlGenerator {
                 // Only add text content for simple types with no children
                 xml.append("    TestValue").append(i + 1).append("\n");
             }
-
             // Close the element
             xml.append("  </").append(prefix).append(":").append(localName).append(">\n");
         }

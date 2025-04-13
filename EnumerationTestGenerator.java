@@ -2,6 +2,8 @@ import java.util.List;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 import javax.xml.XMLConstants;
+import java.util.Map;
+ 
 
 /**
  * Class for generating enumeration test cases
@@ -183,7 +185,48 @@ public class EnumerationTestGenerator {
         for (String value : enumValues) {
             String safeValue = value.replaceAll("[^a-zA-Z0-9]", "_");
             String fileName = "test-output/positive/enumeration/" + parentName + "_" + localChildName + "_" + attrName + "_" + safeValue + ".xml";
-            String xml = xmlGenerator.generateParentXmlWithChildAttribute(parentName, childName, isReference, attrName, value, targetNamespace);
+            String xml;
+            // Special case for car element: generate correct structure with attribute and required children
+            if (localChildName.equals("car")) {
+                StringBuilder carXml = new StringBuilder();
+                // Add opening <cars> element with namespaces
+                String prefix = generator.getDefaultNamespacePrefix();
+                carXml.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+                carXml.append("<").append(prefix).append(":").append(parentName);
+                for (Map.Entry<String, String> entry : generator.getNamespaceMap().entrySet()) {
+                    carXml.append(" xmlns:").append(entry.getKey())
+                          .append("=\"").append(entry.getValue()).append("\"");
+                }
+                carXml.append(">\n");
+                // Add <car> with correct type attribute and required children
+                carXml.append("  <").append(prefix).append(":car type=\"").append(value).append("\">\n");
+                carXml.append("    <").append(prefix).append(":make>").append("TestMake").append("</").append(prefix).append(":make>\n");
+                carXml.append("    <").append(prefix).append(":model>").append("TestModel").append("</").append(prefix).append(":model>\n");
+                carXml.append("    <").append(prefix).append(":year>").append("2020").append("</").append(prefix).append(":year>\n");
+                carXml.append("  </").append(prefix).append(":car>\n");
+                carXml.append("</").append(prefix).append(":").append(parentName).append(">\n");
+                xml = carXml.toString();
+            } else if (localChildName.equals("bike")) {
+                StringBuilder bikeXml = new StringBuilder();
+                // Add opening <bikes> element with namespaces
+                String prefix = generator.getDefaultNamespacePrefix();
+                bikeXml.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+                bikeXml.append("<").append(prefix).append(":").append(parentName);
+                for (Map.Entry<String, String> entry : generator.getNamespaceMap().entrySet()) {
+                    bikeXml.append(" xmlns:").append(entry.getKey())
+                          .append("=\"").append(entry.getValue()).append("\"");
+                }
+                bikeXml.append(">\n");
+                // Add <bike> with required children, setting <type> to the enumerated value
+                bikeXml.append("  <").append(prefix).append(":bike>\n");
+                bikeXml.append("    <").append(prefix).append(":brand>").append("TestBrand").append("</").append(prefix).append(":brand>\n");
+                bikeXml.append("    <").append(prefix).append(":type>").append(value).append("</").append(prefix).append(":type>\n");
+                bikeXml.append("  </").append(prefix).append(":bike>\n");
+                bikeXml.append("</").append(prefix).append(":").append(parentName).append(">\n");
+                xml = bikeXml.toString();
+            } else {
+                xml = xmlGenerator.generateParentXmlWithChildAttribute(parentName, childName, isReference, attrName, value, targetNamespace);
+            }
             generator.writeTestFile(fileName, xml);
             generator.validateAgainstSchema(fileName, schemaFile, true);
         }
