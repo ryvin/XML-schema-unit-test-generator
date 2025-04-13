@@ -2,11 +2,14 @@
 <vh:vehicles xmlns:vh="http://example.com/vehicles" xmlns:xs="http://www.w3.org/2001/XMLSchema">
   <vh:cars>
   <vh:car>
-    TestValue1
   </vh:car>
   </vh:cars>
   <vh:bikes>
+  <vh:bike>
+  </vh:bike>
   </vh:bikes>
   <vh:bikes>
+  <vh:bike>
+  </vh:bike>
   </vh:bikes>
 </vh:vehicles>

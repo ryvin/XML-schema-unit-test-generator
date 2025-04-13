@@ -91,26 +91,63 @@ public class TestXmlGenerator {
         for (int i = 0; i < count; i++) {
             // Add the element with proper namespace prefix
             xml.append("  <").append(prefix).append(":").append(localName).append(">\n");
-            
-            // If this is a reference to a global element or a global element itself
-            if (isReference || isGlobalElement) {
-                List<ElementInfo> children = generator.getGlobalElementsMap().get(localName);
+
+            // Determine if this element is a simple type
+            boolean isSimpleType = false;
+            List<ElementInfo> children = generator.getGlobalElementsMap().get(localName);
+
+            // Try to find ElementInfo for this element
+            ElementInfo info = null;
+            // First, check if this is a global element definition
+            if (generator.getGlobalElementDefinitions().containsKey(localName)) {
+                // If it has children in the globalElementsMap, it's a complex type
                 if (children != null && !children.isEmpty()) {
-                    // Add child elements recursively
-                    for (ElementInfo child : children) {
-                        if (child.minOccurs > 0) {
-                            addCompleteElementInstance(xml, child.name, child.isReference, child.minOccurs, elementNamespace);
-                        }
-                    }
+                    isSimpleType = false;
                 } else {
-                    // For simple type elements or elements with no children defined
-                    xml.append("    TestValue").append(i + 1).append("\n");
+                    // Otherwise, try to find ElementInfo in any child list
+                    for (List<ElementInfo> childList : generator.getGlobalElementsMap().values()) {
+                        for (ElementInfo e : childList) {
+                            if (e.name.equals(localName)) {
+                                info = e;
+                                break;
+                            }
+                        }
+                        if (info != null) break;
+                    }
+                    if (info != null) {
+                        isSimpleType = info.isSimpleType;
+                    } else {
+                        // If not found, default to false (complex type)
+                        isSimpleType = false;
+                    }
                 }
             } else {
-                // For elements that aren't global or references - generate test content
+                // Not a global element, look up in child lists
+                for (List<ElementInfo> childList : generator.getGlobalElementsMap().values()) {
+                    for (ElementInfo e : childList) {
+                        if (e.name.equals(localName)) {
+                            info = e;
+                            break;
+                        }
+                    }
+                    if (info != null) break;
+                }
+                if (info != null) {
+                    isSimpleType = info.isSimpleType;
+                }
+            }
+
+            if (children != null && !children.isEmpty()) {
+                // Complex type: always add all required children recursively, no text content
+                for (ElementInfo child : children) {
+                    int childCount = Math.max(child.minOccurs, 1); // Always at least 1
+                    addCompleteElementInstance(xml, child.name, child.isReference, childCount, elementNamespace);
+                }
+            } else if (isSimpleType) {
+                // Only add text content for simple types with no children
                 xml.append("    TestValue").append(i + 1).append("\n");
             }
-            
+
             // Close the element
             xml.append("  </").append(prefix).append(":").append(localName).append(">\n");
         }

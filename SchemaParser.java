@@ -149,6 +149,32 @@ public class SchemaParser {
                         childInfo.isReference = !ref.isEmpty();
                         childInfo.minOccurs = min;
                         childInfo.maxOccurs = max;
+
+                        // Determine if this is a simple type
+                        // 1. Inline <simpleType> child
+                        Element simpleType = generator.findChildElement(childElement, "simpleType");
+                        if (simpleType != null) {
+                            childInfo.isSimpleType = true;
+                        } else {
+                            // 2. type attribute refers to built-in XSD simple type
+                            String typeAttr = childElement.getAttribute("type");
+                            if (!typeAttr.isEmpty()) {
+                                // Accept both "xs:string" and "string" (with or without prefix)
+                                String typeName = typeAttr.contains(":") ? typeAttr.split(":")[1] : typeAttr;
+                                Set<String> xsdSimpleTypes = new HashSet<>(Arrays.asList(
+                                    "string", "boolean", "decimal", "float", "double", "duration", "dateTime", "time",
+                                    "date", "gYearMonth", "gYear", "gMonthDay", "gDay", "gMonth", "hexBinary",
+                                    "base64Binary", "anyURI", "QName", "NOTATION", "normalizedString", "token",
+                                    "language", "IDREFS", "ENTITIES", "NMTOKEN", "NMTOKENS", "Name", "NCName",
+                                    "ID", "IDREF", "ENTITY", "integer", "nonPositiveInteger", "negativeInteger",
+                                    "long", "int", "short", "byte", "nonNegativeInteger", "unsignedLong",
+                                    "unsignedInt", "unsignedShort", "unsignedByte", "positiveInteger"
+                                ));
+                                childInfo.isSimpleType = xsdSimpleTypes.contains(typeName);
+                            } else {
+                                childInfo.isSimpleType = false;
+                            }
+                        }
                         
                         childElements.add(childInfo);
                     }

@@ -6,4 +6,5 @@ public class ElementInfo {
     boolean isReference;
     int minOccurs;
     int maxOccurs;
+    boolean isSimpleType; // true if the element is a simple type (can have text content)
 }

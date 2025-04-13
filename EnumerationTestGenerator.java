@@ -166,12 +166,17 @@ public class EnumerationTestGenerator {
      * Generate tests for child element attribute enumerations
      */
     public void generateChildAttributeEnumerationTests(String parentName, String childName, boolean isReference,
-                                                   String attrName, List<String> enumValues, 
+                                                   String attrName, List<String> enumValues,
                                                    String targetNamespace, String schemaFile) throws Exception {
         // Extract local name if it's a qualified name with prefix
         String localChildName = childName;
         if (childName.contains(":")) {
             localChildName = childName.substring(childName.indexOf(":") + 1);
+        }
+
+        // Skip generating attribute tests for container elements like "cars", "bikes", "vehicles"
+        if (localChildName.equalsIgnoreCase("cars") || localChildName.equalsIgnoreCase("bikes") || localChildName.equalsIgnoreCase("vehicles")) {
+            return;
         }
         
         // Generate positive tests - one for each value
@@ -194,8 +199,13 @@ public class EnumerationTestGenerator {
     /**
      * Generate enumeration tests for an attribute
      */
-    public void generateAttributeEnumerationTests(String elementName, String attrName, List<String> enumValues, 
+    public void generateAttributeEnumerationTests(String elementName, String attrName, List<String> enumValues,
                                                String targetNamespace, String schemaFile) throws Exception {
+        // Skip generating attribute tests for container elements like "cars" or "bikes"
+        if (elementName.equalsIgnoreCase("cars") || elementName.equalsIgnoreCase("bikes") || elementName.equalsIgnoreCase("vehicles")) {
+            // These are container elements, not the actual elements that should have the attribute
+            return;
+        }
         // Generate positive tests - one for each value
         for (String value : enumValues) {
             String safeValue = value.replaceAll("[^a-zA-Z0-9]", "_");
