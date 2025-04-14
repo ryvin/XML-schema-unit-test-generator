@@ -71,7 +71,9 @@ public class XmlValueHelper {
         String localType = type.contains(":") ? type.substring(type.indexOf(":") + 1) : type;
         
         // Generate value based on type
-        if (localType.endsWith("string") || localType.endsWith("normalizedString") || localType.endsWith("token")) {
+        if (localType.endsWith("NMTOKEN")) {
+            return "ValidNMTOKEN";
+        } else if (localType.endsWith("string") || localType.endsWith("normalizedString") || localType.endsWith("token")) {
             return "SampleString";
         } else if (localType.endsWith("int") || localType.endsWith("integer") || localType.endsWith("positiveInteger")) {
             return "1";

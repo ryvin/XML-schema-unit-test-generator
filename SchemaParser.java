@@ -19,7 +19,7 @@ public class SchemaParser {
     private XMLSchemaTestGenerator generator;
     
     // Map to store all global type definitions (simpleType and complexType) by name
-    private Map<String, Element> typeDefinitions = new HashMap<>();
+    private static Map<String, Element> typeDefinitions = new HashMap<>();
     
     // Map to track resolved references to avoid circular reference issues
     private Set<String> resolvedReferences = new HashSet<>();
@@ -147,6 +147,33 @@ public class SchemaParser {
     public void findAllGlobalElements(Document schemaDoc) {
         // First extract namespace declarations
         extractNamespaceDeclarations(schemaDoc.getDocumentElement());
+        
+        // --- PATCH: Collect all global simpleType and complexType definitions ---
+        NodeList simpleTypes = schemaDoc.getElementsByTagNameNS(XMLConstants.W3C_XML_SCHEMA_NS_URI, "simpleType");
+        for (int i = 0; i < simpleTypes.getLength(); i++) {
+            Element simpleType = (Element) simpleTypes.item(i);
+            Node parent = simpleType.getParentNode();
+            if (parent != null && (parent.getLocalName().equals("schema") || parent.getNodeName().equals("xs:schema"))) {
+                String name = simpleType.getAttribute("name");
+                if (!name.isEmpty()) {
+                    typeDefinitions.put(name, simpleType);
+                    logger.info("[LOG] Registered global simpleType: " + name);
+                }
+            }
+        }
+        NodeList complexTypes = schemaDoc.getElementsByTagNameNS(XMLConstants.W3C_XML_SCHEMA_NS_URI, "complexType");
+        for (int i = 0; i < complexTypes.getLength(); i++) {
+            Element complexType = (Element) complexTypes.item(i);
+            Node parent = complexType.getParentNode();
+            if (parent != null && (parent.getLocalName().equals("schema") || parent.getNodeName().equals("xs:schema"))) {
+                String name = complexType.getAttribute("name");
+                if (!name.isEmpty()) {
+                    typeDefinitions.put(name, complexType);
+                    logger.info("[LOG] Registered global complexType: " + name);
+                }
+            }
+        }
+        // --- END PATCH ---
         
         // Process global elements
         NodeList elements = schemaDoc.getElementsByTagNameNS(XMLConstants.W3C_XML_SCHEMA_NS_URI, "element");
@@ -681,10 +708,8 @@ public class SchemaParser {
      * Resolve a type name to its global type definition element
      */
     public Element resolveTypeDefinition(String typeName) {
-        if (typeDefinitions.containsKey(typeName)) {
-            return typeDefinitions.get(typeName);
-        }
-        return null;
+        logger.info("[LOG] resolveTypeDefinition: Available typeDefinitions: " + typeDefinitions.keySet());
+        return typeDefinitions.get(typeName);
     }
     
     /**

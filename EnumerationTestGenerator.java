@@ -26,45 +26,79 @@ public class EnumerationTestGenerator {
      */
     public void generateEnumerationTests(String elementName, Element element, 
                                        String targetNamespace, String schemaFile) throws Exception {
+        // Only generate enumeration tests for global elements
+        if (!generator.getGlobalElementDefinitions().containsKey(elementName)) {
+            System.out.println("[LOG] Skipping enumeration tests for non-global element: " + elementName);
+            return;
+        }
+        
         // Process element's direct type enumerations
         List<String> elementEnums = schemaParser.findEnumerationValues(element);
+        System.out.println("[LOG] Element '" + elementName + "' enumeration values: " + elementEnums);
         if (!elementEnums.isEmpty()) {
             generateEnumerationTestsForValues(elementName, elementEnums, targetNamespace, schemaFile);
         }
-        
+
         // Process attributes with enumerations
         Element complexType = generator.findChildElement(element, "complexType");
+        // --- PATCH: If this element has a 'type' attribute referencing a global complexType, descend into it ---
+        if (complexType == null) {
+            String typeName = element.getAttribute("type");
+            System.out.println("[LOG] Element '" + elementName + "' has type attribute: '" + typeName + "'");
+            if (!typeName.isEmpty()) {
+                String resolvedTypeName = typeName.contains(":") ? typeName.split(":")[1] : typeName;
+                System.out.println("[LOG] Attempting to resolve type definition for: '" + resolvedTypeName + "'");
+                Element typeDef = schemaParser.resolveTypeDefinition(resolvedTypeName);
+                if (typeDef != null) {
+                    System.out.println("[LOG] Found type definition for '" + resolvedTypeName + "': " + typeDef.getLocalName());
+                } else {
+                    System.out.println("[LOG] Could NOT find type definition for '" + resolvedTypeName + "'");
+                }
+                if (typeDef != null && "complexType".equals(typeDef.getLocalName())) {
+                    System.out.println("[LOG] Descending into referenced complexType: " + resolvedTypeName);
+                    complexType = typeDef;
+                }
+            }
+        }
         if (complexType != null) {
             NodeList attributes = complexType.getElementsByTagNameNS(XMLConstants.W3C_XML_SCHEMA_NS_URI, "attribute");
             for (int i = 0; i < attributes.getLength(); i++) {
                 Element attribute = (Element) attributes.item(i);
                 String attrName = attribute.getAttribute("name");
                 List<String> attrEnums = schemaParser.findEnumerationValues(attribute);
-                
+                System.out.println("[LOG] Attribute '" + attrName + "' enumeration values: " + attrEnums);
                 if (!attrEnums.isEmpty()) {
                     generateAttributeEnumerationTests(elementName, attrName, attrEnums, targetNamespace, schemaFile);
                 }
             }
+            // --- PATCH: Recursively process child elements for enumerations ---
+            System.out.println("[LOG] Recursively checking child elements of complexType for '" + elementName + "'");
+            NodeList childElements = complexType.getElementsByTagNameNS(XMLConstants.W3C_XML_SCHEMA_NS_URI, "element");
+            for (int i = 0; i < childElements.getLength(); i++) {
+                Element childEl = (Element) childElements.item(i);
+                String childName = childEl.getAttribute("name");
+                if (childName != null && !childName.isEmpty()) {
+                    List<String> childEnums = schemaParser.findEnumerationValues(childEl);
+                    System.out.println("[LOG] Child element '" + childName + "' enumeration values: " + childEnums);
+                    System.out.println("[LOG] Recursively checking child element for enumeration: " + childName);
+                    generateEnumerationTests(childName, childEl, targetNamespace, schemaFile);
+                }
+            }
         }
-        
-        // Process child elements with enumerations
+        // --- END PATCH ---
+        // Existing logic for child elements with enumerations (if any) remains unchanged
         List<ElementInfo> childElements = generator.getGlobalElementsMap().get(elementName);
         if (childElements != null) {
             for (ElementInfo childInfo : childElements) {
                 String childName = childInfo.name;
-                
-                // Extract local name if it's a qualified name with prefix
                 String localChildName = childName;
                 if (childName.contains(":")) {
                     localChildName = childName.substring(childName.indexOf(":") + 1);
                 }
-                
-                // Find the element definition
                 Element childElement = null;
                 if (childInfo.isReference) {
                     childElement = generator.getGlobalElementDefinitions().get(localChildName);
                 } else if (complexType != null) {
-                    // Find the element in the complex type
                     NodeList elements = complexType.getElementsByTagNameNS(XMLConstants.W3C_XML_SCHEMA_NS_URI, "element");
                     for (int i = 0; i < elements.getLength(); i++) {
                         Element el = (Element) elements.item(i);
@@ -74,37 +108,29 @@ public class EnumerationTestGenerator {
                         }
                     }
                 }
-                
                 if (childElement != null) {
-                    // Find enumeration values for this child element
                     List<String> childEnums = schemaParser.findEnumerationValues(childElement);
+                    System.out.println("[LOG] Child element (existing logic) '" + childName + "' enumeration values: " + childEnums);
                     if (!childEnums.isEmpty()) {
-                        // Generate tests for this element's enum values
                         generateChildElementEnumerationTests(elementName, childName, childInfo.isReference, 
                                                           childEnums, targetNamespace, schemaFile);
                     }
-                    
-                    // Find enumerations in child elements' attributes
                     Element childComplexType = generator.findChildElement(childElement, "complexType");
                     if (childComplexType != null) {
                         NodeList childAttributes = childComplexType.getElementsByTagNameNS(
                                 XMLConstants.W3C_XML_SCHEMA_NS_URI, "attribute");
-                        
                         for (int i = 0; i < childAttributes.getLength(); i++) {
                             Element attribute = (Element) childAttributes.item(i);
                             String attrName = attribute.getAttribute("name");
                             List<String> attrEnums = schemaParser.findEnumerationValues(attribute);
-                            
+                            System.out.println("[LOG] Child attribute '" + attrName + "' enumeration values: " + attrEnums);
                             if (!attrEnums.isEmpty()) {
-                                // Generate tests for child element attribute enumerations
                                 generateChildAttributeEnumerationTests(
                                     elementName, childName, childInfo.isReference, 
                                     attrName, attrEnums, targetNamespace, schemaFile);
                             }
                         }
                     }
-                    
-                    // Recursively process this element's enumerations if it's a global element
                     if (generator.getGlobalElementDefinitions().containsKey(localChildName)) {
                         generateEnumerationTests(localChildName, generator.getGlobalElementDefinitions().get(localChildName), 
                                               targetNamespace, schemaFile);
@@ -119,6 +145,7 @@ public class EnumerationTestGenerator {
      */
     public void generateEnumerationTestsForValues(String elementName, List<String> enumValues, 
                                                 String targetNamespace, String schemaFile) throws Exception {
+        System.out.println("[LOG] Generating enumeration tests for element: " + elementName + ", enumValues: " + enumValues);
         // Generate positive tests - one for each value
         for (String value : enumValues) {
             String safeValue = value.replaceAll("[^a-zA-Z0-9]", "_");
@@ -128,15 +155,16 @@ public class EnumerationTestGenerator {
             String fileName = "test-output/positive/enumeration/" + elementName + "_enum_" + safeValue + ".xml";
             String xml = xmlGenerator.generateXmlWithValue(elementName, xmlValue, targetNamespace);
             generator.writeTestFile(fileName, xml);
+            System.out.println("[LOG] Wrote positive enum test: " + fileName);
             generator.validateAgainstSchema(fileName, schemaFile, true);
         }
         
         // Generate negative test with invalid value using XmlValueHelper for type
         String fileName = "test-output/negative/enumeration/" + elementName + "_enum_invalid.xml";
-        // Patch: Use XmlValueHelper to generate invalid value for the type
         String invalidValue = "INVALID_" + System.currentTimeMillis();
         String xml = xmlGenerator.generateXmlWithValue(elementName, invalidValue, targetNamespace);
         generator.writeTestFile(fileName, xml);
+        System.out.println("[LOG] Wrote negative enum test: " + fileName);
         generator.validateAgainstSchema(fileName, schemaFile, false);
     }
     
@@ -146,6 +174,13 @@ public class EnumerationTestGenerator {
     public void generateChildElementEnumerationTests(String parentName, String childName, boolean isReference,
                                                  List<String> enumValues, String targetNamespace, 
                                                  String schemaFile) throws Exception {
+        // Only generate child element enumeration tests if parent is a global element
+        if (!generator.getGlobalElementDefinitions().containsKey(parentName)) {
+            System.out.println("[LOG] Skipping child enumeration tests for non-global parent: " + parentName);
+            return;
+        }
+        
+        System.out.println("[LOG] Generating child element enumeration tests for parent: " + parentName + ", child: " + childName + ", enumValues: " + enumValues);
         // Extract local name if it's a qualified name with prefix
         String localChildName = childName;
         if (childName.contains(":")) {
@@ -155,11 +190,10 @@ public class EnumerationTestGenerator {
         // Generate positive tests - one for each value
         for (String value : enumValues) {
             String safeValue = value.replaceAll("[^a-zA-Z0-9]", "_");
-            // Patch: Use XmlValueHelper to generate valid value for the type if needed
-            String xmlValue = value;
             String fileName = "test-output/positive/enumeration/" + parentName + "_" + localChildName + "_" + safeValue + ".xml";
-            String xml = xmlGenerator.generateParentXmlWithChildValue(parentName, childName, isReference, xmlValue, targetNamespace);
+            String xml = xmlGenerator.generateParentXmlWithChildValue(parentName, childName, isReference, value, targetNamespace);
             generator.writeTestFile(fileName, xml);
+            System.out.println("[LOG] Wrote positive child enum test: " + fileName);
             generator.validateAgainstSchema(fileName, schemaFile, true);
         }
         
@@ -168,6 +202,7 @@ public class EnumerationTestGenerator {
         String invalidValue = "INVALID_" + System.currentTimeMillis();
         String xml = xmlGenerator.generateParentXmlWithChildValue(parentName, childName, isReference, invalidValue, targetNamespace);
         generator.writeTestFile(fileName, xml);
+        System.out.println("[LOG] Wrote negative child enum test: " + fileName);
         generator.validateAgainstSchema(fileName, schemaFile, false);
     }
     
@@ -177,6 +212,7 @@ public class EnumerationTestGenerator {
     public void generateChildAttributeEnumerationTests(String parentName, String childName, boolean isReference,
                                                    String attrName, List<String> enumValues,
                                                    String targetNamespace, String schemaFile) throws Exception {
+        System.out.println("[LOG] Generating child attribute enumeration tests for parent: " + parentName + ", child: " + childName + ", attr: " + attrName + ", enumValues: " + enumValues);
         // Extract local name if it's a qualified name with prefix
         String localChildName = childName;
         if (childName.contains(":")) {
@@ -213,9 +249,9 @@ public class EnumerationTestGenerator {
         for (String value : enumValues) {
             String safeValue = value.replaceAll("[^a-zA-Z0-9]", "_");
             String fileName = "test-output/positive/enumeration/" + parentName + "_" + localChildName + "_" + attrName + "_" + safeValue + ".xml";
-            // Patch: Use XmlValueHelper for attribute value if needed (here, value is from enum, so it's valid)
             String xml = generateAppropriateXmlStructure(parentName, childName, isReference, attrName, value, targetNamespace);
             generator.writeTestFile(fileName, xml);
+            System.out.println("[LOG] Wrote positive child attribute enum test: " + fileName);
             generator.validateAgainstSchema(fileName, schemaFile, true);
         }
         
@@ -224,6 +260,7 @@ public class EnumerationTestGenerator {
         String invalidValue = "INVALID_" + System.currentTimeMillis();
         String xml = xmlGenerator.generateParentXmlWithChildAttribute(parentName, childName, isReference, attrName, invalidValue, targetNamespace);
         generator.writeTestFile(fileName, xml);
+        System.out.println("[LOG] Wrote negative child attribute enum test: " + fileName);
         generator.validateAgainstSchema(fileName, schemaFile, false);
     }
     
@@ -333,6 +370,7 @@ public class EnumerationTestGenerator {
      */
     public void generateAttributeEnumerationTests(String elementName, String attrName, List<String> enumValues,
                                                String targetNamespace, String schemaFile) throws Exception {
+        System.out.println("[LOG] Generating attribute enumeration tests for element: " + elementName + ", attr: " + attrName + ", enumValues: " + enumValues);
         // Get the element definition to check if attribute is valid
         String localName = elementName;
         if (elementName.contains(":")) {
@@ -352,6 +390,7 @@ public class EnumerationTestGenerator {
             String fileName = "test-output/positive/enumeration/" + elementName + "_" + attrName + "_" + safeValue + ".xml";
             String xml = xmlGenerator.generateXmlWithAttributeValue(elementName, attrName, value, targetNamespace);
             generator.writeTestFile(fileName, xml);
+            System.out.println("[LOG] Wrote positive attribute enum test: " + fileName);
             generator.validateAgainstSchema(fileName, schemaFile, true);
         }
         
@@ -360,6 +399,7 @@ public class EnumerationTestGenerator {
         String invalidValue = "INVALID_" + System.currentTimeMillis();
         String xml = xmlGenerator.generateXmlWithAttributeValue(elementName, attrName, invalidValue, targetNamespace);
         generator.writeTestFile(fileName, xml);
+        System.out.println("[LOG] Wrote negative attribute enum test: " + fileName);
         generator.validateAgainstSchema(fileName, schemaFile, false);
     }
 }

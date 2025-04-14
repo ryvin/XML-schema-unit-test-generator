@@ -265,7 +265,7 @@ public class TestXmlStructureHelper {
                         // Find bike-specific enumeration values
                         Element bikeTypeElement = findChildElement(parentElement, "type");
                         if (bikeTypeElement != null) {
-                            String value = xmlValueHelper.getEnumerationValueForContext(bikeTypeElement, "type");
+                            String value = xmlValueHelper.getElementValue(bikeTypeElement);
                             xml.append(value);
                         } else {
                             // Fallback for bike types
