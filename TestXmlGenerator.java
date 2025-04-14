@@ -83,41 +83,8 @@ public class TestXmlGenerator {
         if (parentElement == null) {
             return null;
         }
-        
-        // Extract local name if it's a qualified name with prefix
-        String localChildName = childName;
-        if (childName.contains(":")) {
-            localChildName = childName.substring(childName.indexOf(":") + 1);
-        }
-        
-        // First try to find it as a direct child
-        Element complexType = generator.findChildElement(parentElement, "complexType");
-        if (complexType != null) {
-            // Look in sequence, choice, or all
-            for (String compositorName : new String[]{"sequence", "choice", "all"}) {
-                Element compositor = generator.findChildElement(complexType, compositorName);
-                if (compositor != null) {
-                    org.w3c.dom.NodeList elements = compositor.getElementsByTagNameNS(XMLConstants.W3C_XML_SCHEMA_NS_URI, "element");
-                    for (int i = 0; i < elements.getLength(); i++) {
-                        Element el = (Element) elements.item(i);
-                        if (el.getParentNode() != compositor) {
-                            continue;
-                        }
-                        
-                        String name = el.getAttribute("name");
-                        String ref = el.getAttribute("ref");
-                        
-                        if ((!name.isEmpty() && name.equals(localChildName)) || 
-                            (!ref.isEmpty() && (ref.equals(childName) || ref.endsWith(":" + localChildName)))) {
-                            return el;
-                        }
-                    }
-                }
-            }
-        }
-        
-        // If not found as direct child, try global element definitions
-        return generator.getGlobalElementDefinitions().get(localChildName);
+        // Use robust generator.findChildElement for all child lookups
+        return generator.findChildElement(parentElement, childName);
     }
     
     /**

@@ -171,29 +171,32 @@ public class XMLSchemaTestGenerator {
             if (typeDef != null) {
                 // --- DEBUG: Print before searching for actual child ---
                 System.out.println("[DEBUG] XMLSchemaTestGenerator.findChildElement: Searching resolved complexType '" + typeDef.getAttribute("name") + "' for child '" + localName + "'");
-                // Search <sequence> for child
-                NodeList seqs = typeDef.getElementsByTagName("sequence");
+                // Search <sequence> for child (namespace-aware)
+                NodeList seqs = typeDef.getElementsByTagNameNS(XMLConstants.W3C_XML_SCHEMA_NS_URI, "sequence");
+                System.out.println("[DEBUG] XMLSchemaTestGenerator.findChildElement:   <sequence> has " + seqs.getLength() + " sequences");
                 for (int s = 0; s < seqs.getLength(); s++) {
                     Element seq = (Element) seqs.item(s);
-                    NodeList seqChildren = seq.getElementsByTagName("element");
+                    NodeList seqChildren = seq.getElementsByTagNameNS(XMLConstants.W3C_XML_SCHEMA_NS_URI, "element");
+                    System.out.println("[DEBUG] XMLSchemaTestGenerator.findChildElement:   <sequence> has " + seqChildren.getLength() + " <element> children");
                     for (int j = 0; j < seqChildren.getLength(); j++) {
                         Element el = (Element) seqChildren.item(j);
                         String name = el.getAttribute("name");
                         String ref = el.getAttribute("ref");
-                        System.out.println("[DEBUG] XMLSchemaTestGenerator.findChildElement:   sequence candidate name='" + name + "', ref='" + ref + "'");
+                        System.out.println("[DEBUG] XMLSchemaTestGenerator.findChildElement:     candidate <element> name='" + name + "', ref='" + ref + "'");
                         if ((!name.isEmpty() && name.equals(localName)) || (!ref.isEmpty() && (ref.equals(localName) || ref.endsWith(":" + localName)))) {
                             System.out.println("[DEBUG] XMLSchemaTestGenerator.findChildElement: MATCHED in <sequence>: '" + name + "' or ref='" + ref + "'");
                             return el;
                         }
                     }
                 }
-                // Search direct children of complexType
-                NodeList directChildren = typeDef.getElementsByTagName("element");
+                // Search direct children of complexType (namespace-aware)
+                NodeList directChildren = typeDef.getElementsByTagNameNS(XMLConstants.W3C_XML_SCHEMA_NS_URI, "element");
+                System.out.println("[DEBUG] XMLSchemaTestGenerator.findChildElement:   complexType has " + directChildren.getLength() + " direct <element> children");
                 for (int j = 0; j < directChildren.getLength(); j++) {
                     Element el = (Element) directChildren.item(j);
                     String name = el.getAttribute("name");
                     String ref = el.getAttribute("ref");
-                    System.out.println("[DEBUG] XMLSchemaTestGenerator.findChildElement:   complexType direct candidate name='" + name + "', ref='" + ref + "'");
+                    System.out.println("[DEBUG] XMLSchemaTestGenerator.findChildElement:     direct candidate <element> name='" + name + "', ref='" + ref + "'");
                     if ((!name.isEmpty() && name.equals(localName)) || (!ref.isEmpty() && (ref.equals(localName) || ref.endsWith(":" + localName)))) {
                         System.out.println("[DEBUG] XMLSchemaTestGenerator.findChildElement: MATCHED in <complexType> direct: '" + name + "' or ref='" + ref + "'");
                         return el;
