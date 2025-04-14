@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--  Editor:  Ray Denenberg, Library of Congress; rden@loc.gov -->
+<xs:schema xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns="http://www.loc.gov/mods/v3" targetNamespace="http://www.loc.gov/mods/v3" elementFormDefault="qualified" attributeFormDefault="unqualified">
+	<xs:import namespace="http://www.w3.org/XML/1998/namespace" schemaLocation="http://www.loc.gov/mods/xml.xsd"/>
+	<xs:import namespace="http://www.w3.org/1999/xlink" schemaLocation="http://www.loc.gov/standards/xlink/xlink.xsd"/>
+	<xs:element name="mods" type="modsDefinition"/>
+	<xs:complexType name="modsDefinition">
+		<xs:group ref="modsGroup" maxOccurs="unbounded"/>
+		<xs:attribute name="ID" type="xs:ID"/>
+		<xs:attribute name="version">
+			<xs:simpleType>
+				<xs:restriction base="xs:string">
+					<xs:enumeration value="3.7"/>
+					<xs:enumeration value="3.6"/>
+					<xs:enumeration value="3.5"/>
+					<xs:enumeration value="3.4"/>
+					<xs:enumeration value="3.3"/>
+					<xs:enumeration value="3.2"/>
+					<xs:enumeration value="3.1"/>
+					<xs:enumeration value="3.0"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+	</xs:complexType>
+	<xs:element name="modsCollection" type="modsCollectionDefinition"/>
+	<xs:complexType name="modsCollectionDefinition">
+		<xs:sequence>
+			<xs:element ref="mods" maxOccurs="unbounded"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:group name="modsGroup">
+		<xs:choice>
+			<!-- Top level MODS elements would be listed here -->
+		</xs:choice>
+	</xs:group>
+</xs:schema>

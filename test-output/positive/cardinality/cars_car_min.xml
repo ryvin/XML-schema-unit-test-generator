@@ -3,6 +3,6 @@
   <vh:car type="sedan">
     <vh:make>SampleString</vh:make>
     <vh:model>SampleString</vh:model>
-    <vh:year>2020</vh:year>
+    <vh:year>2022</vh:year>
   </vh:car>
 </vh:cars>

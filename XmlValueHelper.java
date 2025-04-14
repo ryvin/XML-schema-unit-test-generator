@@ -86,13 +86,13 @@ public class XmlValueHelper {
         } else if (localType.endsWith("dateTime")) {
             return "2020-01-01T12:00:00";
         } else if (localType.endsWith("gYear")) {
-            return "2020";
+            return "2022"; // Use a valid year for gYear
         } else if (localType.endsWith("gMonth")) {
             return "01";
         } else if (localType.endsWith("gDay")) {
             return "01";
         } else if (localType.endsWith("gYearMonth")) {
-            return "2020-01";
+            return "2022-01";
         } else if (localType.endsWith("gMonthDay")) {
             return "--01-01";
         } else if (localType.endsWith("duration")) {

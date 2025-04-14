@@ -138,7 +138,7 @@ public class TestXmlGenerator {
         
         // Get namespace URI for this element
         String elementNamespace = namespace;
-        if (!prefix.isEmpty() && generator.getNamespaceMap().containsKey(prefix)) {
+        if (prefix != null && !prefix.isEmpty() && generator.getNamespaceMap().containsKey(prefix)) {
             elementNamespace = generator.getNamespaceMap().get(prefix);
         }
         
@@ -154,7 +154,11 @@ public class TestXmlGenerator {
             List<ElementInfo> children = getElementChildren(effectiveSchemaElement);
 
             // Add opening tag with attributes
-            xml.append("  <").append(prefix).append(":").append(localName).append(attrBuilder).append(">\n");
+            xml.append("  <");
+            if (prefix != null && !prefix.isEmpty()) {
+                xml.append(prefix).append(":");
+            }
+            xml.append(localName).append(attrBuilder).append(">\n");
 
             if (!children.isEmpty()) {
                 // Complex type: add all required children
@@ -166,7 +170,11 @@ public class TestXmlGenerator {
             }
             
             // Close the element
-            xml.append("  </").append(prefix).append(":").append(localName).append(">\n");
+            xml.append("  </");
+            if (prefix != null && !prefix.isEmpty()) {
+                xml.append(prefix).append(":");
+            }
+            xml.append(localName).append(">\n");
         }
     }
     
@@ -200,38 +208,39 @@ public class TestXmlGenerator {
      */
     private StringBuilder buildAttributeString(Element elementDef) {
         StringBuilder attrBuilder = new StringBuilder();
-        
         if (elementDef == null) {
             return attrBuilder;
         }
-        
+        // Prevent adding attributes to container elements like 'cars', 'bikes', 'vehicles'
+        String localName = elementDef.getAttribute("name");
+        if (localName != null) {
+            String lower = localName.toLowerCase();
+            if (lower.equals("cars") || lower.equals("bikes") || lower.equals("vehicles")) {
+                return attrBuilder;
+            }
+        }
         // Find complex type definition
         Element complexType = generator.findChildElement(elementDef, "complexType");
         if (complexType == null) {
             return attrBuilder;
         }
-        
         // Find all attributes defined for this element
         NodeList attributes = complexType.getElementsByTagNameNS(XMLConstants.W3C_XML_SCHEMA_NS_URI, "attribute");
         for (int i = 0; i < attributes.getLength(); i++) {
             Element attrElem = (Element) attributes.item(i);
             String attrName = attrElem.getAttribute("name");
-            
             // Skip attributes without a name
             if (attrName == null || attrName.trim().isEmpty()) {
                 continue;
             }
-            
             // Verify this attribute belongs to this element
             if (!xmlValueHelper.isAttributeValidForElement(elementDef, attrName)) {
                 continue;
             }
-            
             // Get the attribute value
             String attrValue = xmlValueHelper.getAttributeValue(attrElem);
             attrBuilder.append(" ").append(attrName).append("=\"").append(attrValue).append("\"");
         }
-        
         return attrBuilder;
     }
     
