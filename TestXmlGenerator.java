@@ -238,20 +238,56 @@ public class TestXmlGenerator {
                             localChildName = parts[1];
                         }
                         xml.append("  <").append(prefixChild).append(":").append(localChildName).append(">");
-                        // Always use the correct schema node for value generation
-                        Element valueSchemaElement = childSchemaElement;
-                        // If this is a reference, resolve to the global element definition
+                        // Find the correct <xs:element> node for this child within the parent complexType
+                        Element valueSchemaElement = null;
+                        if (effectiveSchemaElement != null) {
+                            Element complexType = generator.findChildElement(effectiveSchemaElement, "complexType");
+                            if (complexType != null) {
+                                // Recursively search for <xs:element> with the correct name inside <xs:sequence>, <xs:choice>, or <xs:all>
+                                valueSchemaElement = findElementByNameRecursive(complexType, localChildName);
+                            }
+                        }
+                        // Fallback to previous logic if not found
+                        if (valueSchemaElement == null && childSchemaElement != null && "element".equals(childSchemaElement.getLocalName())) {
+                            valueSchemaElement = childSchemaElement;
+                        } else if (valueSchemaElement == null && generator.getGlobalElementDefinitions().containsKey(child.name)) {
+                            valueSchemaElement = generator.getGlobalElementDefinitions().get(child.name);
+                        }
+                        // If this is a reference, resolve to the referenced global element
                         if (valueSchemaElement != null && valueSchemaElement.hasAttribute("ref")) {
                             String refName = valueSchemaElement.getAttribute("ref");
                             String refLocal = refName.contains(":") ? refName.split(":")[1] : refName;
                             if (generator.getGlobalElementDefinitions().containsKey(refLocal)) {
                                 valueSchemaElement = generator.getGlobalElementDefinitions().get(refLocal);
                             }
+                        
+                            // Recursively search for <xs:element> with the given name inside a parent node
+                            private Element findElementByNameRecursive(Element parent, String name) {
+                                if (parent == null) return null;
+                                NodeList children = parent.getChildNodes();
+                                for (int i = 0; i < children.getLength(); i++) {
+                                    org.w3c.dom.Node node = children.item(i);
+                                    if (node.getNodeType() == org.w3c.dom.Node.ELEMENT_NODE) {
+                                        Element el = (Element) node;
+                                        if ("element".equals(el.getLocalName()) && name.equals(el.getAttribute("name"))) {
+                                            return el;
+                                        }
+                                        // Recurse into <xs:sequence>, <xs:choice>, <xs:all>, <xs:complexType>
+                                        if ("sequence".equals(el.getLocalName()) || "choice".equals(el.getLocalName()) ||
+                                            "all".equals(el.getLocalName()) || "complexType".equals(el.getLocalName())) {
+                                            Element found = findElementByNameRecursive(el, name);
+                                            if (found != null) return found;
+                                        }
+                                    }
+                                }
+                                return null;
+                            }
                         }
                         // If still null, fallback to the current child name in global definitions
                         if (valueSchemaElement == null && generator.getGlobalElementDefinitions().containsKey(child.name)) {
                             valueSchemaElement = generator.getGlobalElementDefinitions().get(child.name);
                         }
+                        // Only use enumerations from the correct <xs:element> node
                         String value = xmlValueHelper.getElementValue(valueSchemaElement);
                         xml.append(value);
                         xml.append("</").append(prefixChild).append(":").append(localChildName).append(">\n");
