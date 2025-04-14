@@ -41,7 +41,10 @@ public class XmlValueHelper {
      * Generate appropriate value for an element based on its definition
      */
     public String getElementValue(Element schemaElement) {
-        if (schemaElement == null) return "SampleValue";
+        if (schemaElement == null) {
+            System.out.println("[DEBUG] getElementValue: schemaElement is null, returning SampleValue");
+            return "SampleValue";
+        }
         
         // First check if this element has enumeration values
         List<String> enums = schemaParser.findEnumerationValues(schemaElement);
@@ -49,10 +52,12 @@ public class XmlValueHelper {
         if (enums != null && !enums.isEmpty()) {
             for (String value : enums) {
                 if (value != null && !value.trim().isEmpty()) {
-                    System.out.println("[DEBUG] Returning direct enum value: " + value);
+                    System.out.println("[DEBUG] getElementValue: Returning first non-empty enum value '" + value + "' for element '" + schemaElement.getAttribute("name") + "'");
                     return value;
                 }
             }
+            System.out.println("[DEBUG] getElementValue: All enum values were empty for element '" + schemaElement.getAttribute("name") + "'. Returning SampleValue");
+            return "SampleValue";
         }
 
         // --- PATCH: Always resolve type attribute if present, or from parent <complexType> if missing ---
@@ -90,10 +95,12 @@ public class XmlValueHelper {
                 if (typeEnums != null && !typeEnums.isEmpty()) {
                     for (String value : typeEnums) {
                         if (value != null && !value.trim().isEmpty()) {
-                            System.out.println("[DEBUG] Returning type enum value: " + value);
+                            System.out.println("[DEBUG] getElementValue: Returning first non-empty type enum value '" + value + "' for element '" + schemaElement.getAttribute("name") + "'");
                             return value;
                         }
                     }
+                    System.out.println("[DEBUG] getElementValue: All type enum values were empty for element '" + schemaElement.getAttribute("name") + "'. Returning SampleValue");
+                    return "SampleValue";
                 }
             } else {
                 System.out.println("[DEBUG] No typeDef found for type: " + type);
@@ -108,10 +115,12 @@ public class XmlValueHelper {
             if (inlineEnums != null && !inlineEnums.isEmpty()) {
                 for (String value : inlineEnums) {
                     if (value != null && !value.trim().isEmpty()) {
-                        System.out.println("[DEBUG] Returning inline simpleType enum value: " + value);
+                        System.out.println("[DEBUG] getElementValue: Returning first non-empty inline simpleType enum value '" + value + "' for element '" + schemaElement.getAttribute("name") + "'");
                         return value;
                     }
                 }
+                System.out.println("[DEBUG] getElementValue: All inline simpleType enum values were empty for element '" + schemaElement.getAttribute("name") + "'. Returning SampleValue");
+                return "SampleValue";
             }
         } else {
             // Parent <complexType> logic (as previously patched)
@@ -131,10 +140,12 @@ public class XmlValueHelper {
                                 if (childInlineEnums != null && !childInlineEnums.isEmpty()) {
                                     for (String value : childInlineEnums) {
                                         if (value != null && !value.trim().isEmpty()) {
-                                            System.out.println("[DEBUG] Returning parent complexType inline enum value: " + value);
+                                            System.out.println("[DEBUG] getElementValue: Returning first non-empty parent complexType inline enum value '" + value + "' for element '" + childName + "'");
                                             return value;
                                         }
                                     }
+                                    System.out.println("[DEBUG] getElementValue: All parent complexType inline enum values were empty for element '" + childName + "'. Returning SampleValue");
+                                    return "SampleValue";
                                 }
                             }
                             Element simpleContent = findChildElement(el, "simpleContent");
@@ -146,10 +157,12 @@ public class XmlValueHelper {
                                     if (restrictionEnums != null && !restrictionEnums.isEmpty()) {
                                         for (String value : restrictionEnums) {
                                             if (value != null && !value.trim().isEmpty()) {
-                                                System.out.println("[DEBUG] Returning parent complexType restriction enum value: " + value);
+                                                System.out.println("[DEBUG] getElementValue: Returning first non-empty parent complexType restriction enum value '" + value + "' for element '" + childName + "'");
                                                 return value;
                                             }
                                         }
+                                        System.out.println("[DEBUG] getElementValue: All parent complexType restriction enum values were empty for element '" + childName + "'. Returning SampleValue");
+                                        return "SampleValue";
                                     }
                                 }
                             }
@@ -163,10 +176,12 @@ public class XmlValueHelper {
                                     if (typeEnums2 != null && !typeEnums2.isEmpty()) {
                                         for (String value : typeEnums2) {
                                             if (value != null && !value.trim().isEmpty()) {
-                                                System.out.println("[DEBUG] Returning parent complexType enum value: " + value);
+                                                System.out.println("[DEBUG] getElementValue: Returning first non-empty parent complexType enum value '" + value + "' for element '" + childName + "'");
                                                 return value;
                                             }
                                         }
+                                        System.out.println("[DEBUG] getElementValue: All parent complexType enum values were empty for element '" + childName + "'. Returning SampleValue");
+                                        return "SampleValue";
                                     }
                                 }
                             }
@@ -256,6 +271,7 @@ public class XmlValueHelper {
      * Find a child element with the specified local name
      */
     private Element findChildElement(Element parent, String localName) {
+        System.out.println("[DEBUG] XmlValueHelper.findChildElement CALLED for child='" + localName + "' parent='" + (parent != null ? parent.getAttribute("name") : "<null>") + "'");
         if (parent == null) return null;
         NodeList children = parent.getChildNodes();
         for (int i = 0; i < children.getLength(); i++) {

@@ -144,14 +144,70 @@ public class XMLSchemaTestGenerator {
      * Find child element by local name
      */
     public Element findChildElement(Element parent, String localName) {
+        System.out.println("[DEBUG] XMLSchemaTestGenerator.findChildElement CALLED for child='" + localName + "' parent='" + (parent != null ? parent.getAttribute("name") : "<null>") + "'");
+        if (parent == null) return null;
+        // 1. Try direct child (original logic)
         NodeList children = parent.getChildNodes();
         for (int i = 0; i < children.getLength(); i++) {
             Node child = children.item(i);
-            if (child.getNodeType() == Node.ELEMENT_NODE && 
-                localName.equals(child.getLocalName())) {
+            if (child.getNodeType() == Node.ELEMENT_NODE && localName.equals(child.getLocalName())) {
+                System.out.println("[DEBUG] XMLSchemaTestGenerator.findChildElement: Found direct child '" + localName + "' in parent '" + parent.getAttribute("name") + "'");
                 return (Element) child;
             }
         }
+        // 2. If parent has a type attribute, resolve referenced complexType
+        String typeAttr = parent.getAttribute("type");
+        if (typeAttr != null && !typeAttr.isEmpty()) {
+            String typeName = typeAttr.contains(":") ? typeAttr.split(":")[1] : typeAttr;
+            Element typeDef = null;
+            if (this instanceof XMLSchemaTestGenerator) {
+                // Defensive: should always be true
+                typeDef = ((XMLSchemaTestGenerator)this).getTypeDefinition(typeName);
+            } else {
+                // fallback: try static map
+                typeDef = SchemaParser.getTypeDefinition(typeName);
+            }
+            System.out.println("[DEBUG] XMLSchemaTestGenerator.findChildElement: Resolved type attribute '" + typeAttr + "' to typeDef='" + (typeDef != null ? typeDef.getAttribute("name") : "<null>") + "'");
+            if (typeDef != null) {
+                // Search <sequence> for child
+                NodeList seqs = typeDef.getElementsByTagName("sequence");
+                for (int s = 0; s < seqs.getLength(); s++) {
+                    Element seq = (Element) seqs.item(s);
+                    NodeList seqChildren = seq.getElementsByTagName("element");
+                    for (int j = 0; j < seqChildren.getLength(); j++) {
+                        Element el = (Element) seqChildren.item(j);
+                        String name = el.getAttribute("name");
+                        String ref = el.getAttribute("ref");
+                        System.out.println("[DEBUG] XMLSchemaTestGenerator.findChildElement:   sequence candidate name='" + name + "', ref='" + ref + "'");
+                        if ((!name.isEmpty() && name.equals(localName)) || (!ref.isEmpty() && (ref.equals(localName) || ref.endsWith(":" + localName)))) {
+                            System.out.println("[DEBUG] XMLSchemaTestGenerator.findChildElement: MATCHED in <sequence>: '" + name + "' or ref='" + ref + "'");
+                            return el;
+                        }
+                    }
+                }
+                // Search direct children of complexType
+                NodeList directChildren = typeDef.getElementsByTagName("element");
+                for (int j = 0; j < directChildren.getLength(); j++) {
+                    Element el = (Element) directChildren.item(j);
+                    String name = el.getAttribute("name");
+                    String ref = el.getAttribute("ref");
+                    System.out.println("[DEBUG] XMLSchemaTestGenerator.findChildElement:   complexType direct candidate name='" + name + "', ref='" + ref + "'");
+                    if ((!name.isEmpty() && name.equals(localName)) || (!ref.isEmpty() && (ref.equals(localName) || ref.endsWith(":" + localName)))) {
+                        System.out.println("[DEBUG] XMLSchemaTestGenerator.findChildElement: MATCHED in <complexType> direct: '" + name + "' or ref='" + ref + "'");
+                        return el;
+                    }
+                }
+            }
+        }
+        // 3. Fallback: try global element definitions (if available)
+        if (this instanceof XMLSchemaTestGenerator) {
+            Element global = ((XMLSchemaTestGenerator)this).getGlobalElementDefinitions().get(localName);
+            if (global != null) {
+                System.out.println("[DEBUG] XMLSchemaTestGenerator.findChildElement: Fallback to global element definition for '" + localName + "'");
+                return global;
+            }
+        }
+        System.out.println("[DEBUG] XMLSchemaTestGenerator.findChildElement: NO MATCH for child '" + localName + "' in parent '" + (parent.getAttribute("name")) + "'");
         return null;
     }
     
@@ -222,5 +278,17 @@ public class XMLSchemaTestGenerator {
     
     public String getDefaultNamespacePrefix() {
         return defaultNamespacePrefix;
+    }
+    
+    // Add this method to resolve type definitions by name
+    public org.w3c.dom.Element getTypeDefinition(String typeName) {
+        // Try to retrieve from SchemaParser's static map, or from an internal map if available
+        // (Assume SchemaParser.typeDefinitions is public static or provide a getter)
+        if (SchemaParser.typeDefinitions != null && SchemaParser.typeDefinitions.containsKey(typeName)) {
+            System.out.println("[DEBUG] XMLSchemaTestGenerator.getTypeDefinition: Found typeDef for '" + typeName + "'");
+            return SchemaParser.typeDefinitions.get(typeName);
+        }
+        System.out.println("[DEBUG] XMLSchemaTestGenerator.getTypeDefinition: No typeDef found for '" + typeName + "'");
+        return null;
     }
 }

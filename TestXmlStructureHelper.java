@@ -290,6 +290,7 @@ public class TestXmlStructureHelper {
      * Find a child element by name in parent element
      */
     private Element findChildElement(Element parentElement, String childName) {
+        System.out.println("[DEBUG] TestXmlStructureHelper.findChildElement CALLED for child='" + childName + "' parent='" + (parentElement != null ? parentElement.getAttribute("name") : "<null>") + "'");
         if (parentElement == null) {
             return null;
         }

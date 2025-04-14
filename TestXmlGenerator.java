@@ -97,7 +97,7 @@ public class TestXmlGenerator {
             for (String compositorName : new String[]{"sequence", "choice", "all"}) {
                 Element compositor = generator.findChildElement(complexType, compositorName);
                 if (compositor != null) {
-                    NodeList elements = compositor.getElementsByTagNameNS(XMLConstants.W3C_XML_SCHEMA_NS_URI, "element");
+                    org.w3c.dom.NodeList elements = compositor.getElementsByTagNameNS(XMLConstants.W3C_XML_SCHEMA_NS_URI, "element");
                     for (int i = 0; i < elements.getLength(); i++) {
                         Element el = (Element) elements.item(i);
                         if (el.getParentNode() != compositor) {
@@ -133,6 +133,21 @@ public class TestXmlGenerator {
             String[] parts = elementName.split(":");
             prefix = parts[0];
             localName = parts[1];
+        }
+
+        // --- DEBUG: Print schemaElement info ---
+        if (schemaElement == null) {
+            System.out.println("[DEBUG] addCompleteElementInstance: schemaElement is NULL for element '" + localName + "'");
+        } else {
+            System.out.println("[DEBUG] addCompleteElementInstance: schemaElement for element '" + localName + "' attributes:");
+            for (int i = 0; i < schemaElement.getAttributes().getLength(); i++) {
+                org.w3c.dom.Node attr = schemaElement.getAttributes().item(i);
+                System.out.println("    [ATTR] " + attr.getNodeName() + " = '" + attr.getNodeValue() + "'");
+            }
+            // Print tag name and first 200 chars of outer XML for reference
+            String tagName = schemaElement.getTagName();
+            String xmlSnippet = schemaElementToString(schemaElement, 200);
+            System.out.println("    [TAG] " + tagName + " | [XML SNIPPET] " + xmlSnippet);
         }
         
         // Get namespace URI for this element
@@ -178,6 +193,25 @@ public class TestXmlGenerator {
                 xml.append(prefix).append(":");
             }
             xml.append(localName).append(">\n");
+        }
+    }
+    
+    /**
+     * Utility to get a string representation of an Element (for debug)
+     */
+    private String schemaElementToString(Element el, int maxLen) {
+        try {
+            javax.xml.transform.Transformer tf = javax.xml.transform.TransformerFactory.newInstance().newTransformer();
+            tf.setOutputProperty(javax.xml.transform.OutputKeys.OMIT_XML_DECLARATION, "yes");
+            java.io.StringWriter writer = new java.io.StringWriter();
+            tf.transform(new javax.xml.transform.dom.DOMSource(el), new javax.xml.transform.stream.StreamResult(writer));
+            String xml = writer.toString();
+            if (xml.length() > maxLen) {
+                return xml.substring(0, maxLen) + "...";
+            }
+            return xml;
+        } catch (Exception e) {
+            return "[ERROR serializing element: " + e.getMessage() + "]";
         }
     }
     
@@ -228,7 +262,7 @@ public class TestXmlGenerator {
             return attrBuilder;
         }
         // Find all attributes defined for this element
-        NodeList attributes = complexType.getElementsByTagNameNS(XMLConstants.W3C_XML_SCHEMA_NS_URI, "attribute");
+        org.w3c.dom.NodeList attributes = complexType.getElementsByTagNameNS(XMLConstants.W3C_XML_SCHEMA_NS_URI, "attribute");
         for (int i = 0; i < attributes.getLength(); i++) {
             Element attrElem = (Element) attributes.item(i);
             String attrName = attrElem.getAttribute("name");
@@ -318,6 +352,9 @@ public class TestXmlGenerator {
             
             // Find schema element for this child
             Element childSchemaElement = findChildElement(parentElement, child.name);
+            // --- DEBUG: Print parent and child info, and whether schema element is found ---
+            String parentName = (parentElement != null && parentElement.hasAttribute("name")) ? parentElement.getAttribute("name") : "<null>";
+            System.out.println("[DEBUG] addChildElements: parent='" + parentName + "', child='" + child.name + "', schemaElement=" + (childSchemaElement == null ? "NULL" : "FOUND"));
             
             // Get child local name
             String childLocalName = child.name;
@@ -354,48 +391,85 @@ public class TestXmlGenerator {
      * Find a child element by name
      */
     private Element findChildElement(Element parentElement, String childName) {
+        System.out.println("[DEBUG] TestXmlGenerator.findChildElement CALLED for child='" + childName + "' parent='" + (parentElement != null ? parentElement.getAttribute("name") : "<null>") + "'");
+        System.out.println("[DEBUG] findChildElement: ENTER parent='" + (parentElement != null ? parentElement.getAttribute("name") : "<null>") + "', child='" + childName + "'");
         if (parentElement == null) {
+            System.out.println("[DEBUG] findChildElement: parentElement is null for child='" + childName + "'");
             return null;
         }
-        
         // Extract local name if it's a qualified name with prefix
         String localChildName = childName;
         if (childName.contains(":")) {
             localChildName = childName.substring(childName.indexOf(":") + 1);
         }
-        
-        // Find complex type
-        Element complexType = generator.findChildElement(parentElement, "complexType");
-        if (complexType == null) {
-            return null;
+        Element typeComplexType = null;
+        String typeAttr = parentElement.getAttribute("type");
+        if (typeAttr != null && !typeAttr.isEmpty()) {
+            String typeName = typeAttr.contains(":") ? typeAttr.substring(typeAttr.indexOf(":") + 1) : typeAttr;
+            if (schemaParser != null) {
+                typeComplexType = schemaParser.resolveTypeDefinition(typeName);
+                System.out.println("[DEBUG] findChildElement: parent='" + (parentElement.getAttribute("name")) + "', typeAttr='" + typeAttr + "', resolved typeName='" + typeName + "', found complexType=" + (typeComplexType != null));
+            }
         }
-        
-        // Look for child element in sequence, choice, or all
-        for (String compositorName : new String[]{"sequence", "choice", "all"}) {
-            Element compositor = generator.findChildElement(complexType, compositorName);
-            if (compositor != null) {
-                NodeList elements = compositor.getElementsByTagNameNS(XMLConstants.W3C_XML_SCHEMA_NS_URI, "element");
+        if (typeComplexType == null) {
+            typeComplexType = generator.findChildElement(parentElement, "complexType");
+            System.out.println("[DEBUG] findChildElement: parent='" + (parentElement.getAttribute("name")) + "', inline complexType found=" + (typeComplexType != null));
+        }
+        if (typeComplexType != null) {
+            Element sequence = generator.findChildElement(typeComplexType, "sequence");
+            if (sequence != null) {
+                org.w3c.dom.NodeList elements = sequence.getElementsByTagName("element");
+                System.out.println("[DEBUG] findChildElement: Searching <sequence> for child='" + childName + "'. Found " + elements.getLength() + " elements.");
                 for (int i = 0; i < elements.getLength(); i++) {
                     Element el = (Element) elements.item(i);
-                    
-                    // Skip if not direct child of compositor
-                    if (el.getParentNode() != compositor) {
-                        continue;
-                    }
-                    
                     String name = el.getAttribute("name");
                     String ref = el.getAttribute("ref");
-                    
-                    if ((!name.isEmpty() && name.equals(localChildName)) || 
+                    System.out.println("[DEBUG] findChildElement:   sequence child candidate name='" + name + "', ref='" + ref + "'");
+                    if ((!name.isEmpty() && name.equals(localChildName)) ||
                         (!ref.isEmpty() && (ref.equals(childName) || ref.endsWith(":" + localChildName)))) {
+                        System.out.println("[DEBUG] findChildElement:   MATCHED sequence child: '" + name + "' or ref='" + ref + "'");
+                        System.out.println("[DEBUG] findChildElement: EXIT MATCH parent='" + (parentElement.getAttribute("name")) + "', child='" + childName + "', matched in <sequence>");
+                        return el;
+                    }
+                }
+            }
+            org.w3c.dom.NodeList directElements = typeComplexType.getElementsByTagName("element");
+            System.out.println("[DEBUG] findChildElement: Searching <complexType> direct children for child='" + childName + "'. Found " + directElements.getLength() + " elements.");
+            for (int i = 0; i < directElements.getLength(); i++) {
+                Element el = (Element) directElements.item(i);
+                String name = el.getAttribute("name");
+                String ref = el.getAttribute("ref");
+                System.out.println("[DEBUG] findChildElement:   direct child candidate name='" + name + "', ref='" + ref + "'");
+                if ((!name.isEmpty() && name.equals(localChildName)) ||
+                    (!ref.isEmpty() && (ref.equals(childName) || ref.endsWith(":" + localChildName)))) {
+                    System.out.println("[DEBUG] findChildElement:   MATCHED direct child: '" + name + "' or ref='" + ref + "'");
+                    System.out.println("[DEBUG] findChildElement: EXIT MATCH parent='" + (parentElement.getAttribute("name")) + "', child='" + childName + "', matched in <complexType> direct children");
+                    return el;
+                }
+            }
+        }
+        org.w3c.dom.NodeList children = parentElement.getChildNodes();
+        System.out.println("[DEBUG] findChildElement: Searching parent direct children for child='" + childName + "'.");
+        for (int i = 0; i < children.getLength(); i++) {
+            org.w3c.dom.Node child = children.item(i);
+            if (child.getNodeType() == org.w3c.dom.Node.ELEMENT_NODE) {
+                Element el = (Element) child;
+                if ("element".equals(el.getLocalName())) {
+                    String name = el.getAttribute("name");
+                    String ref = el.getAttribute("ref");
+                    System.out.println("[DEBUG] findChildElement:   parent direct child candidate name='" + name + "', ref='" + ref + "'");
+                    if ((!name.isEmpty() && name.equals(localChildName)) ||
+                        (!ref.isEmpty() && (ref.equals(childName) || ref.endsWith(":" + localChildName)))) {
+                        System.out.println("[DEBUG] findChildElement:   MATCHED parent direct child: '" + name + "' or ref='" + ref + "'");
+                        System.out.println("[DEBUG] findChildElement: EXIT MATCH parent='" + (parentElement.getAttribute("name")) + "', child='" + childName + "', matched in parent direct children");
                         return el;
                     }
                 }
             }
         }
-        
-        // Element not found in parent
-        return null;
+        System.out.println("[DEBUG] findChildElement: NO MATCH parent='" + (parentElement.getAttribute("name")) + "', child='" + childName + "', returning null or global fallback");
+        System.out.println("[DEBUG] findChildElement: EXIT NO MATCH parent='" + (parentElement.getAttribute("name")) + "', child='" + childName + "'");
+        return generator.getGlobalElementDefinitions().get(localChildName);
     }
     
     /**
