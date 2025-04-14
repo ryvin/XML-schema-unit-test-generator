@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<shiporder>
+  <orderperson>
+    SampleString
+  </orderperson>
+  <item>
+    <null:title>SampleString</null:title>
+    <null:note>SampleString</null:note>
+    <null:quantity>1</null:quantity>
+    <null:price>1.0</null:price>
+  </item>
+</shiporder>

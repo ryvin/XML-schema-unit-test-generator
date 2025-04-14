@@ -1,31 +1,114 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
-  <xs:element name="shiporder">
-    <xs:complexType>
-      <xs:sequence>
-        <xs:element name="orderperson" type="xs:string"/>
-        <xs:element name="shipto">
-          <xs:complexType>
-            <xs:sequence>
-              <xs:element name="name" type="xs:string"/>
-              <xs:element name="address" type="xs:string"/>
-              <xs:element name="city" type="xs:string"/>
-              <xs:element name="country" type="xs:string"/>
-            </xs:sequence>
-          </xs:complexType>
-        </xs:element>
-        <xs:element name="item" maxOccurs="unbounded">
-          <xs:complexType>
-            <xs:sequence>
-              <xs:element name="title" type="xs:string"/>
-              <xs:element name="note" type="xs:string" minOccurs="0"/>
-              <xs:element name="quantity" type="xs:positiveInteger"/>
-              <xs:element name="price" type="xs:decimal"/>
-            </xs:sequence>
-          </xs:complexType>
-        </xs:element>
-      </xs:sequence>
-      <xs:attribute name="orderid" type="xs:string" use="required"/>
-    </xs:complexType>
-  </xs:element>
-</xs:schema>
+<schema targetNamespace="http://www.openarchives.org/OAI/2.0/"
+        xmlns="http://www.w3.org/2001/XMLSchema"
+        xmlns:oai="http://www.openarchives.org/OAI/2.0/"
+        elementFormDefault="qualified"
+        attributeFormDefault="unqualified">
+
+  <annotation>
+    <documentation>
+    XML Schema which can be used to validate replies to all OAI-PMH 
+    v2.0 requests. Herbert Van de Sompel, 2002-05-13.
+    Validated with XML Spy v.4.3 on 2002-05-13.
+    Validated with XSV 1.203.2.45/1.106.2.22 on 2002-05-13.
+    Added definition of protocolVersionType instead of using anonymous 
+    type. No change of function. Simeon Warner, 2004-03-29.
+    Tightened definition of UTCdatetimeType to enforce the restriction 
+    to UTC Z notation. Simeon Warner, 2004-09-14.
+    Corrected pattern matches for setSpecType and metadataPrefixType
+    to agree with protocol specification. Simeon Warner, 2004-10-12.
+    Spelling correction. Simeon Warner, 2008-12-07.
+    $Date: 2004/10/12 15:20:29 $
+    </documentation>
+  </annotation>
+
+  <element name="OAI-PMH" type="oai:OAI-PMHtype"/>
+
+  <complexType name="OAI-PMHtype">
+    <sequence>
+      <element name="responseDate" type="dateTime"/>
+      <element name="request" type="oai:requestType"/>
+      <choice>
+        <element name="error" type="oai:OAI-PMHerrorType" maxOccurs="unbounded"/>
+        <element name="Identify" type="oai:IdentifyType"/>
+        <element name="ListMetadataFormats" type="oai:ListMetadataFormatsType"/>
+        <element name="ListSets" type="oai:ListSetsType"/>
+        <element name="GetRecord" type="oai:GetRecordType"/>
+        <element name="ListIdentifiers" type="oai:ListIdentifiersType"/>
+        <element name="ListRecords" type="oai:ListRecordsType"/>
+      </choice>
+    </sequence>
+  </complexType>
+
+  <complexType name="requestType">
+    <annotation>
+      <documentation>Define requestType, indicating the protocol request that 
+      led to the response. Element content is BASE-URL, attributes are arguments 
+      of protocol request, attribute-values are values of arguments of protocol 
+      request</documentation>
+    </annotation>
+    <simpleContent>
+      <extension base="anyURI">
+        <attribute name="verb" type="oai:verbType" use="optional"/>
+        <attribute name="identifier" type="oai:identifierType" use="optional"/>
+        <attribute name="metadataPrefix" type="oai:metadataPrefixType" use="optional"/>
+        <attribute name="from" type="oai:UTCdatetimeType" use="optional"/>
+        <attribute name="until" type="oai:UTCdatetimeType" use="optional"/>
+        <attribute name="set" type="oai:setSpecType" use="optional"/>
+        <attribute name="resumptionToken" type="string" use="optional"/>
+      </extension>
+    </simpleContent>
+  </complexType>
+
+  <simpleType name="verbType">
+    <restriction base="string">
+      <enumeration value="Identify"/>
+      <enumeration value="ListMetadataFormats"/>
+      <enumeration value="ListSets"/>
+      <enumeration value="GetRecord"/>
+      <enumeration value="ListIdentifiers"/>
+      <enumeration value="ListRecords"/>
+    </restriction>
+  </simpleType>
+
+  <!-- define OAI-PMH error conditions -->
+  <!-- =============================== -->
+
+  <complexType name="OAI-PMHerrorType">
+    <simpleContent>
+      <extension base="string">
+        <attribute name="code" type="oai:OAI-PMHerrorcodeType" use="required"/>
+      </extension>
+    </simpleContent>
+  </complexType>
+
+  <simpleType name="OAI-PMHerrorcodeType">
+    <restriction base="string">
+      <enumeration value="cannotDisseminateFormat"/>
+      <enumeration value="idDoesNotExist"/>
+      <enumeration value="badArgument"/>
+      <enumeration value="badVerb"/>
+      <enumeration value="noMetadataFormats"/>
+      <enumeration value="noRecordsMatch"/>
+      <enumeration value="badResumptionToken"/>
+      <enumeration value="noSetHierarchy"/>
+    </restriction>
+  </simpleType>
+
+  <!-- define OAI-PMH verb containers -->
+  <!-- ============================== -->
+
+  <complexType name="IdentifyType">
+    <sequence>
+      <element name="repositoryName" type="string"/>
+      <element name="baseURL" type="anyURI"/>
+      <element name="protocolVersion" type="oai:protocolVersionType"/>
+      <element name="adminEmail" type="oai:emailType" maxOccurs="unbounded"/>
+      <element name="earliestDatestamp" type="oai:UTCdatetimeType"/>
+      <element name="deletedRecord" type="oai:deletedRecordType"/>
+      <element name="granularity" type="oai:granularityType"/>
+    </sequence>
+  </complexType>
+
+  <!-- ... truncated for brevity ... -->
+</schema>

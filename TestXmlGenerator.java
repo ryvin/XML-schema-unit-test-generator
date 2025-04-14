@@ -233,8 +233,10 @@ public class TestXmlGenerator {
             if (attrName == null || attrName.trim().isEmpty()) {
                 continue;
             }
-            // Verify this attribute belongs to this element
-            if (!xmlValueHelper.isAttributeValidForElement(elementDef, attrName)) {
+            // Always add required attributes, add optional if desired
+            String use = attrElem.getAttribute("use");
+            boolean isRequired = "required".equalsIgnoreCase(use);
+            if (!isRequired && !xmlValueHelper.isAttributeValidForElement(elementDef, attrName)) {
                 continue;
             }
             // Get the attribute value
