@@ -162,12 +162,16 @@ public class TestXmlGenerator {
             if (!children.isEmpty()) {
                 // Complex type: add all required children
                 addChildElements(xml, children, effectiveSchemaElement, elementNamespace, prefix);
-            } else if (isSimpleType) {
-                // Simple type: add text content
+            } else {
+                // Always generate a valid value (including for enumerations)
+                System.out.println("[DEBUG] addCompleteElementInstance for element '" + localName + "' type: '" + (effectiveSchemaElement != null ? effectiveSchemaElement.getAttribute("type") : "null") + "");
                 String value = xmlValueHelper.getElementValue(effectiveSchemaElement);
-                xml.append("    ").append(value).append("\n");
+                System.out.println("[DEBUG] addCompleteElementInstance value for '" + localName + "': " + value);
+                if (value != null && !value.trim().isEmpty()) {
+                    xml.append("    ").append(value).append("\n");
+                }
             }
-            
+
             // Close the element
             xml.append("  </");
             if (hasPrefix) {

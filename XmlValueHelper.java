@@ -45,18 +45,141 @@ public class XmlValueHelper {
         
         // First check if this element has enumeration values
         List<String> enums = schemaParser.findEnumerationValues(schemaElement);
+        System.out.println("[DEBUG] getElementValue for element '" + (schemaElement.getAttribute("name")) + "' direct enums: " + enums);
         if (enums != null && !enums.isEmpty()) {
-            // Use the first enumeration value that's not empty
             for (String value : enums) {
                 if (value != null && !value.trim().isEmpty()) {
+                    System.out.println("[DEBUG] Returning direct enum value: " + value);
                     return value;
+                }
+            }
+        }
+
+        // --- PATCH: Always resolve type attribute if present, or from parent <complexType> if missing ---
+        String type = schemaElement.getAttribute("type");
+        if ((type == null || type.isEmpty())) {
+            // Try to get type from parent <complexType> if this is inside a <sequence>
+            Element parent = (Element) schemaElement.getParentNode();
+            if (parent != null && parent.getLocalName() != null && parent.getLocalName().equals("sequence")) {
+                Element complexType = (Element) parent.getParentNode();
+                if (complexType != null && complexType.getLocalName() != null && complexType.getLocalName().equals("complexType")) {
+                    String childName = schemaElement.getAttribute("name");
+                    NodeList elements = complexType.getElementsByTagName("element");
+                    for (int i = 0; i < elements.getLength(); i++) {
+                        Element el = (Element) elements.item(i);
+                        // Compare local names only (ignore namespace)
+                        String elName = el.getAttribute("name");
+                        if (elName != null && !elName.isEmpty() && childName != null && !childName.isEmpty() && elName.equals(childName)) {
+                            String childType = el.getAttribute("type");
+                            if (childType != null && !childType.isEmpty()) {
+                                type = childType;
+                                System.out.println("[DEBUG] getElementValue resolved type for element '" + childName + "' from parent complexType: " + type);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        if (type != null && !type.isEmpty()) {
+            String typeName = type.contains(":") ? type.split(":")[1] : type;
+            Element typeDef = schemaParser.resolveTypeDefinition(typeName);
+            if (typeDef != null) {
+                List<String> typeEnums = schemaParser.findEnumerationValues(typeDef);
+                System.out.println("[DEBUG] getElementValue for element '" + (schemaElement.getAttribute("name")) + "' type '" + type + "' enums: " + typeEnums);
+                if (typeEnums != null && !typeEnums.isEmpty()) {
+                    for (String value : typeEnums) {
+                        if (value != null && !value.trim().isEmpty()) {
+                            System.out.println("[DEBUG] Returning type enum value: " + value);
+                            return value;
+                        }
+                    }
+                }
+            } else {
+                System.out.println("[DEBUG] No typeDef found for type: " + type);
+            }
+        }
+
+        // --- Existing logic for inline <simpleType> and parent complexType follows ---
+        Element inlineSimpleType = findChildElement(schemaElement, "simpleType");
+        if (inlineSimpleType != null) {
+            List<String> inlineEnums = schemaParser.findEnumerationValues(inlineSimpleType);
+            System.out.println("[DEBUG] getElementValue for element '" + (schemaElement.getAttribute("name")) + "' inline simpleType enums: " + inlineEnums);
+            if (inlineEnums != null && !inlineEnums.isEmpty()) {
+                for (String value : inlineEnums) {
+                    if (value != null && !value.trim().isEmpty()) {
+                        System.out.println("[DEBUG] Returning inline simpleType enum value: " + value);
+                        return value;
+                    }
+                }
+            }
+        } else {
+            // Parent <complexType> logic (as previously patched)
+            Element parent = (Element) schemaElement.getParentNode();
+            if (parent != null && parent.getLocalName() != null && parent.getLocalName().equals("sequence")) {
+                Element complexType = (Element) parent.getParentNode();
+                if (complexType != null && complexType.getLocalName() != null && complexType.getLocalName().equals("complexType")) {
+                    String childName = schemaElement.getAttribute("name");
+                    NodeList elements = complexType.getElementsByTagName("element");
+                    for (int i = 0; i < elements.getLength(); i++) {
+                        Element el = (Element) elements.item(i);
+                        if (childName.equals(el.getAttribute("name"))) {
+                            Element childSimpleType = findChildElement(el, "simpleType");
+                            if (childSimpleType != null) {
+                                List<String> childInlineEnums = schemaParser.findEnumerationValues(childSimpleType);
+                                System.out.println("[DEBUG] getElementValue for element '" + childName + "' parent complexType inline simpleType enums: " + childInlineEnums);
+                                if (childInlineEnums != null && !childInlineEnums.isEmpty()) {
+                                    for (String value : childInlineEnums) {
+                                        if (value != null && !value.trim().isEmpty()) {
+                                            System.out.println("[DEBUG] Returning parent complexType inline enum value: " + value);
+                                            return value;
+                                        }
+                                    }
+                                }
+                            }
+                            Element simpleContent = findChildElement(el, "simpleContent");
+                            if (simpleContent != null) {
+                                Element restriction = findChildElement(simpleContent, "restriction");
+                                if (restriction != null) {
+                                    List<String> restrictionEnums = schemaParser.findEnumerationValues(restriction);
+                                    System.out.println("[DEBUG] getElementValue for element '" + childName + "' parent complexType simpleContent restriction enums: " + restrictionEnums);
+                                    if (restrictionEnums != null && !restrictionEnums.isEmpty()) {
+                                        for (String value : restrictionEnums) {
+                                            if (value != null && !value.trim().isEmpty()) {
+                                                System.out.println("[DEBUG] Returning parent complexType restriction enum value: " + value);
+                                                return value;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            String childType = el.getAttribute("type");
+                            if (childType != null && !childType.isEmpty()) {
+                                String typeName2 = childType.contains(":") ? childType.split(":")[1] : childType;
+                                Element typeDef2 = schemaParser.resolveTypeDefinition(typeName2);
+                                if (typeDef2 != null) {
+                                    List<String> typeEnums2 = schemaParser.findEnumerationValues(typeDef2);
+                                    System.out.println("[DEBUG] getElementValue for element '" + childName + "' parent complexType type '" + childType + "' enums: " + typeEnums2);
+                                    if (typeEnums2 != null && !typeEnums2.isEmpty()) {
+                                        for (String value : typeEnums2) {
+                                            if (value != null && !value.trim().isEmpty()) {
+                                                System.out.println("[DEBUG] Returning parent complexType enum value: " + value);
+                                                return value;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
         
         // If no enumeration values, generate based on type
-        String type = schemaElement.getAttribute("type");
-        return generateValueForType(type);
+        String fallback = generateValueForType(type);
+        System.out.println("[DEBUG] getElementValue fallback for element '" + (schemaElement.getAttribute("name")) + "' type '" + type + "': " + fallback);
+        return fallback;
     }
     
     /**
@@ -134,12 +257,10 @@ public class XmlValueHelper {
      */
     private Element findChildElement(Element parent, String localName) {
         if (parent == null) return null;
-        
         NodeList children = parent.getChildNodes();
         for (int i = 0; i < children.getLength(); i++) {
             Node child = children.item(i);
-            if (child.getNodeType() == Node.ELEMENT_NODE && 
-                localName.equals(child.getLocalName())) {
+            if (child.getNodeType() == Node.ELEMENT_NODE && localName.equals(child.getLocalName())) {
                 return (Element) child;
             }
         }

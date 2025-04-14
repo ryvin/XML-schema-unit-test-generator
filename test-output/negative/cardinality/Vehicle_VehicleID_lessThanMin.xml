@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Vehicle xmlns="http://www.siri.org.uk/siri" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
   <Type>
+    SampleValue
   </Type>
 </Vehicle>

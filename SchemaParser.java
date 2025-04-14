@@ -150,7 +150,7 @@ public class SchemaParser {
         
         // --- PATCH: Collect all global simpleType and complexType definitions ---
         NodeList simpleTypes = schemaDoc.getElementsByTagNameNS(XMLConstants.W3C_XML_SCHEMA_NS_URI, "simpleType");
-        for (int i = 0; i < simpleTypes.getLength(); i++) {
+        for (int i = 0; i <simpleTypes.getLength(); i++) {
             Element simpleType = (Element) simpleTypes.item(i);
             Node parent = simpleType.getParentNode();
             if (parent != null && (parent.getLocalName().equals("schema") || parent.getNodeName().equals("xs:schema"))) {
@@ -612,22 +612,22 @@ public class SchemaParser {
             values.addAll(findEnumerationsInSimpleType(simpleType));
         }
 
-        // If no inline enumerations, check for type attribute and resolve type
-        if (values.isEmpty()) {
-            String typeName = element.getAttribute("type");
-            if (!typeName.isEmpty()) {
-                // Remove prefix if present
-                String resolvedTypeName = typeName.contains(":") ? typeName.split(":")[1] : typeName;
-                Element typeDef = resolveTypeDefinition(resolvedTypeName);
-                if (typeDef != null) {
-                    // Only handle simpleType for enumerations
-                    if (typeDef.getLocalName().equals("simpleType")) {
-                        values.addAll(findEnumerationsInSimpleType(typeDef));
-                    }
+        // --- PATCH: If the element is local (not global), and has a type attribute, resolve and extract enumerations from the referenced global <simpleType> ---
+        String typeAttr = element.getAttribute("type");
+        if (typeAttr != null && !typeAttr.isEmpty()) {
+            String typeName = typeAttr.contains(":") ? typeAttr.split(":")[1] : typeAttr;
+            Element typeDef = resolveTypeDefinition(typeName);
+            if (typeDef != null) {
+                if (typeDef.getLocalName().equals("simpleType")) {
+                    List<String> fromType = findEnumerationsInSimpleType(typeDef);
+                    System.out.println("[DEBUG] findEnumerationValues: Resolved type '" + typeName + "' for element '" + element.getAttribute("name") + "' and found enums: " + fromType);
+                    values.addAll(fromType);
                 }
+            } else {
+                System.out.println("[DEBUG] findEnumerationValues: No typeDef found for type: " + typeAttr + ", element: " + element.getAttribute("name"));
             }
         }
-        
+
         // Cache the results
         if (!elementId.isEmpty()) {
             generator.getEnumValueCache().put(elementId, values);
