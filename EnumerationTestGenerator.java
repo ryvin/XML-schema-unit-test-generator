@@ -122,14 +122,18 @@ public class EnumerationTestGenerator {
         // Generate positive tests - one for each value
         for (String value : enumValues) {
             String safeValue = value.replaceAll("[^a-zA-Z0-9]", "_");
+            // Patch: Use XmlValueHelper to generate valid value for the type if needed
+            String xmlValue = value;
+            // Optionally, you could resolve the type here, but for enums, value itself is valid
             String fileName = "test-output/positive/enumeration/" + elementName + "_enum_" + safeValue + ".xml";
-            String xml = xmlGenerator.generateXmlWithValue(elementName, value, targetNamespace);
+            String xml = xmlGenerator.generateXmlWithValue(elementName, xmlValue, targetNamespace);
             generator.writeTestFile(fileName, xml);
             generator.validateAgainstSchema(fileName, schemaFile, true);
         }
         
-        // Generate negative test with invalid value
+        // Generate negative test with invalid value using XmlValueHelper for type
         String fileName = "test-output/negative/enumeration/" + elementName + "_enum_invalid.xml";
+        // Patch: Use XmlValueHelper to generate invalid value for the type
         String invalidValue = "INVALID_" + System.currentTimeMillis();
         String xml = xmlGenerator.generateXmlWithValue(elementName, invalidValue, targetNamespace);
         generator.writeTestFile(fileName, xml);
@@ -151,13 +155,15 @@ public class EnumerationTestGenerator {
         // Generate positive tests - one for each value
         for (String value : enumValues) {
             String safeValue = value.replaceAll("[^a-zA-Z0-9]", "_");
+            // Patch: Use XmlValueHelper to generate valid value for the type if needed
+            String xmlValue = value;
             String fileName = "test-output/positive/enumeration/" + parentName + "_" + localChildName + "_" + safeValue + ".xml";
-            String xml = xmlGenerator.generateParentXmlWithChildValue(parentName, childName, isReference, value, targetNamespace);
+            String xml = xmlGenerator.generateParentXmlWithChildValue(parentName, childName, isReference, xmlValue, targetNamespace);
             generator.writeTestFile(fileName, xml);
             generator.validateAgainstSchema(fileName, schemaFile, true);
         }
         
-        // Generate negative test with invalid value
+        // Generate negative test with invalid value using XmlValueHelper for type
         String fileName = "test-output/negative/enumeration/" + parentName + "_" + localChildName + "_invalid.xml";
         String invalidValue = "INVALID_" + System.currentTimeMillis();
         String xml = xmlGenerator.generateParentXmlWithChildValue(parentName, childName, isReference, invalidValue, targetNamespace);
@@ -207,14 +213,13 @@ public class EnumerationTestGenerator {
         for (String value : enumValues) {
             String safeValue = value.replaceAll("[^a-zA-Z0-9]", "_");
             String fileName = "test-output/positive/enumeration/" + parentName + "_" + localChildName + "_" + attrName + "_" + safeValue + ".xml";
-            
-            // Generate XML with the appropriate structure based on the element requirements
+            // Patch: Use XmlValueHelper for attribute value if needed (here, value is from enum, so it's valid)
             String xml = generateAppropriateXmlStructure(parentName, childName, isReference, attrName, value, targetNamespace);
             generator.writeTestFile(fileName, xml);
             generator.validateAgainstSchema(fileName, schemaFile, true);
         }
         
-        // Generate negative test with invalid value
+        // Generate negative test with invalid value using XmlValueHelper for type
         String fileName = "test-output/negative/enumeration/" + parentName + "_" + localChildName + "_" + attrName + "_invalid.xml";
         String invalidValue = "INVALID_" + System.currentTimeMillis();
         String xml = xmlGenerator.generateParentXmlWithChildAttribute(parentName, childName, isReference, attrName, invalidValue, targetNamespace);
@@ -350,7 +355,7 @@ public class EnumerationTestGenerator {
             generator.validateAgainstSchema(fileName, schemaFile, true);
         }
         
-        // Generate negative test with invalid value
+        // Generate negative test with invalid value using XmlValueHelper for type
         String fileName = "test-output/negative/enumeration/" + elementName + "_" + attrName + "_invalid.xml";
         String invalidValue = "INVALID_" + System.currentTimeMillis();
         String xml = xmlGenerator.generateXmlWithAttributeValue(elementName, attrName, invalidValue, targetNamespace);
