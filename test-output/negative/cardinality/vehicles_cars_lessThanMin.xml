@@ -3,7 +3,7 @@
   <vh:bikes>
   <vh:bike>
   <vh:brand>SampleString</vh:brand>
-  <vh:type>sedan</vh:type>
+  <vh:type>mountain</vh:type>
   </vh:bike>
   </vh:bikes>
 </vh:vehicles>

@@ -48,5 +48,8 @@ Resolve validation errors in generated XML test files, ensuring:
 - [x] Commit after each major step.
 
 ## Next Steps
-- All major bugs are now fixed. The generator now produces valid test files with correct enumeration values and attributes for any schema, with no hardcoded configuration required.
+- All major bugs are now fixed. The generator now produces valid test files with correct, context-sensitive enumeration values and only adds attributes explicitly defined in the schema for each element. No hardcoded configuration is required.
+- The following issues were resolved:
+  - Enumeration values are now always correct for each element context (e.g., bike/type gets [mountain, road, hybrid], car/type gets [sedan, suv, hatchback]).
+  - The 'type' attribute is no longer added to elements (like vh:cars) that do not allow it.
 - Continue to maintain and extend as needed.

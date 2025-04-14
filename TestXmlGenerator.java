@@ -145,8 +145,6 @@ public class TestXmlGenerator {
                         String attrName = attrElem.getAttribute("name");
                         // Only add attribute if it is explicitly defined for this element
                         if (attrName == null || attrName.trim().isEmpty()) continue;
-                        // Never add 'type' as an attribute unless it is explicitly defined as an attribute (not a type reference)
-                        if (attrName.equals("type") && (!attrElem.getTagName().endsWith("attribute") || !attrElem.hasAttribute("name"))) continue;
                         String attrValue = xmlValueHelper.getAttributeValue(attrElem);
                         attrBuilder.append(" ").append(attrName).append("=\"").append(attrValue).append("\"");
                     }
@@ -260,35 +258,21 @@ public class TestXmlGenerator {
                             if (generator.getGlobalElementDefinitions().containsKey(refLocal)) {
                                 valueSchemaElement = generator.getGlobalElementDefinitions().get(refLocal);
                             }
-                        
-                            // Recursively search for <xs:element> with the given name inside a parent node
-                            private Element findElementByNameRecursive(Element parent, String name) {
-                                if (parent == null) return null;
-                                NodeList children = parent.getChildNodes();
-                                for (int i = 0; i < children.getLength(); i++) {
-                                    org.w3c.dom.Node node = children.item(i);
-                                    if (node.getNodeType() == org.w3c.dom.Node.ELEMENT_NODE) {
-                                        Element el = (Element) node;
-                                        if ("element".equals(el.getLocalName()) && name.equals(el.getAttribute("name"))) {
-                                            return el;
-                                        }
-                                        // Recurse into <xs:sequence>, <xs:choice>, <xs:all>, <xs:complexType>
-                                        if ("sequence".equals(el.getLocalName()) || "choice".equals(el.getLocalName()) ||
-                                            "all".equals(el.getLocalName()) || "complexType".equals(el.getLocalName())) {
-                                            Element found = findElementByNameRecursive(el, name);
-                                            if (found != null) return found;
-                                        }
-                                    }
-                                }
-                                return null;
-                            }
-                        }
-                        // If still null, fallback to the current child name in global definitions
-                        if (valueSchemaElement == null && generator.getGlobalElementDefinitions().containsKey(child.name)) {
-                            valueSchemaElement = generator.getGlobalElementDefinitions().get(child.name);
                         }
                         // Only use enumerations from the correct <xs:element> node
                         String value = xmlValueHelper.getElementValue(valueSchemaElement);
+
+                        // If the enumeration is empty, fallback to the global definition for this child (for legacy schemas)
+                        if ((value == null || value.equals("SampleValue") || value.trim().isEmpty())
+                            && generator.getGlobalElementDefinitions().containsKey(child.name)
+                            && valueSchemaElement != generator.getGlobalElementDefinitions().get(child.name)) {
+                            Element globalElem = generator.getGlobalElementDefinitions().get(child.name);
+                            String fallbackValue = xmlValueHelper.getElementValue(globalElem);
+                            if (fallbackValue != null && !fallbackValue.trim().isEmpty() && !fallbackValue.equals("SampleValue")) {
+                                value = fallbackValue;
+                            }
+                        }
+
                         xml.append(value);
                         xml.append("</").append(prefixChild).append(":").append(localChildName).append(">\n");
                     } else {
@@ -445,5 +429,32 @@ public class TestXmlGenerator {
         xml.append("</").append(parentPrefix).append(":").append(parentName).append(">\n");
         
         return xml.toString();
+    }
+
+    /**
+     * Recursively search for <xs:element> with the given name inside a parent node.
+     * @param parent The parent element to search within.
+     * @param name The name of the element to find.
+     * @return The found Element, or null if not found.
+     */
+    private Element findElementByNameRecursive(Element parent, String name) {
+        if (parent == null) return null;
+        NodeList children = parent.getChildNodes();
+        for (int i = 0; i < children.getLength(); i++) {
+            org.w3c.dom.Node node = children.item(i);
+            if (node.getNodeType() == org.w3c.dom.Node.ELEMENT_NODE) {
+                Element el = (Element) node;
+                if ("element".equals(el.getLocalName()) && name.equals(el.getAttribute("name"))) {
+                    return el;
+                }
+                // Recurse into <xs:sequence>, <xs:choice>, <xs:all>, <xs:complexType>
+                if ("sequence".equals(el.getLocalName()) || "choice".equals(el.getLocalName()) ||
+                    "all".equals(el.getLocalName()) || "complexType".equals(el.getLocalName())) {
+                    Element found = findElementByNameRecursive(el, name);
+                    if (found != null) return found;
+                }
+            }
+        }
+        return null;
     }
 }

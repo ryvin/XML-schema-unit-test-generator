@@ -218,11 +218,6 @@ public class SchemaParser {
      * Find enumeration values for an element or attribute
      */
     public List<String> findEnumerationValues(Element element) {
-        // Check cache first
-        String elementId = element.getAttribute("name");
-        if (generator.getEnumValueCache().containsKey(elementId)) {
-            return generator.getEnumValueCache().get(elementId);
-        }
         
         List<String> values = new ArrayList<>();
         
@@ -262,10 +257,6 @@ public class SchemaParser {
             }
         }
         
-        // Cache the results
-        if (!elementId.isEmpty()) {
-            generator.getEnumValueCache().put(elementId, values);
-        }
         return values;
     }
 
