@@ -150,7 +150,7 @@ public class SchemaParser {
         
         // --- PATCH: Collect all global simpleType and complexType definitions ---
         NodeList simpleTypes = schemaDoc.getElementsByTagNameNS(XMLConstants.W3C_XML_SCHEMA_NS_URI, "simpleType");
-        for (int i = 0; i <simpleTypes.getLength(); i++) {
+        for (int i = 0; i < simpleTypes.getLength(); i++) {
             Element simpleType = (Element) simpleTypes.item(i);
             Node parent = simpleType.getParentNode();
             if (parent != null && (parent.getLocalName().equals("schema") || parent.getNodeName().equals("xs:schema"))) {
@@ -471,7 +471,7 @@ public class SchemaParser {
     /**
      * Find complex type for an element, either inline or by reference
      */
-    private Element findComplexType(Element element) {
+    public Element findComplexType(Element element) {
         // First look for inline complexType
         Element complexType = generator.findChildElement(element, "complexType");
         if (complexType != null) {

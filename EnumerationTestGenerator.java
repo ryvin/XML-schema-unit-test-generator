@@ -91,15 +91,15 @@ public class EnumerationTestGenerator {
         if (childElements != null) {
             for (ElementInfo childInfo : childElements) {
                 String childName = childInfo.name;
-                String localChildName = childName;
-                if (childName.contains(":")) {
-                    localChildName = childName.substring(childName.indexOf(":") + 1);
-                }
+                boolean isReference = childInfo.isReference;
                 Element childElement = null;
-                if (childInfo.isReference) {
+                // Try to resolve child element definition
+                String localChildName = childName.contains(":") ? childName.substring(childName.indexOf(":") + 1) : childName;
+                Element parentComplexType = schemaParser.findComplexType(element);
+                if (isReference) {
                     childElement = generator.getGlobalElementDefinitions().get(localChildName);
-                } else if (complexType != null) {
-                    NodeList elements = complexType.getElementsByTagNameNS(XMLConstants.W3C_XML_SCHEMA_NS_URI, "element");
+                } else if (parentComplexType != null) {
+                    NodeList elements = parentComplexType.getElementsByTagNameNS(javax.xml.XMLConstants.W3C_XML_SCHEMA_NS_URI, "element");
                     for (int i = 0; i < elements.getLength(); i++) {
                         Element el = (Element) elements.item(i);
                         if (localChildName.equals(el.getAttribute("name"))) {
@@ -108,33 +108,89 @@ public class EnumerationTestGenerator {
                         }
                     }
                 }
-                if (childElement != null) {
-                    List<String> childEnums = schemaParser.findEnumerationValues(childElement);
-                    System.out.println("[LOG] Child element (existing logic) '" + childName + "' enumeration values: " + childEnums);
-                    if (!childEnums.isEmpty()) {
-                        generateChildElementEnumerationTests(elementName, childName, childInfo.isReference, 
-                                                          childEnums, targetNamespace, schemaFile);
+                // If the child element has enumerations, generate enumeration tests
+                List<String> enumValues = schemaParser.findEnumerationValues(childElement);
+                if (enumValues != null && !enumValues.isEmpty()) {
+                    // --- PATCH: Generate full parent structure, not just the child ---
+                    for (String enumValue : enumValues) {
+                        String safeValue = enumValue.replaceAll("[^a-zA-Z0-9]", "_");
+                        // Build all required children in correct order
+                        StringBuilder xml = new StringBuilder();
+                        xml.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+                        xml.append("<").append(elementName)
+                           .append(" xmlns=\"").append(targetNamespace).append("\"")
+                           .append(" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"")
+                           .append(" xsi:schemaLocation=\"").append(targetNamespace).append(" schemas/vehicles.xsd\"")
+                           .append(">\n");
+                        // Add all children in order, using valid values, but set enum value for the tested child
+                        for (ElementInfo info : childElements) {
+                            String cname = info.name;
+                            String localCname = cname.contains(":") ? cname.substring(cname.indexOf(":") + 1) : cname;
+                            Element cElement = null;
+                            if (info.isReference) {
+                                cElement = generator.getGlobalElementDefinitions().get(localCname);
+                            } else if (parentComplexType != null) {
+                                NodeList elements = parentComplexType.getElementsByTagNameNS(javax.xml.XMLConstants.W3C_XML_SCHEMA_NS_URI, "element");
+                                for (int i = 0; i < elements.getLength(); i++) {
+                                    Element el = (Element) elements.item(i);
+                                    if (localCname.equals(el.getAttribute("name"))) {
+                                        cElement = el;
+                                        break;
+                                    }
+                                }
+                            }
+                            String value;
+                            if (localCname.equals(localChildName)) {
+                                value = enumValue;
+                            } else {
+                                value = xmlValueHelper.getElementValue(cElement);
+                            }
+                            xml.append("  <").append(localCname).append(">").append(value).append("</").append(localCname).append(">\n");
+                        }
+                        xml.append("</").append(elementName).append(">\n");
+                        String fileName = "test-output/positive/enumeration/" + elementName + "_" + localChildName + "_" + safeValue + ".xml";
+                        generator.writeTestFile(fileName, xml.toString());
+                        System.out.println("[LOG] Wrote positive child enum test: " + fileName);
+                        generator.validateAgainstSchema(fileName, schemaFile, true);
                     }
-                    Element childComplexType = generator.findChildElement(childElement, "complexType");
-                    if (childComplexType != null) {
-                        NodeList childAttributes = childComplexType.getElementsByTagNameNS(
-                                XMLConstants.W3C_XML_SCHEMA_NS_URI, "attribute");
-                        for (int i = 0; i < childAttributes.getLength(); i++) {
-                            Element attribute = (Element) childAttributes.item(i);
-                            String attrName = attribute.getAttribute("name");
-                            List<String> attrEnums = schemaParser.findEnumerationValues(attribute);
-                            System.out.println("[LOG] Child attribute '" + attrName + "' enumeration values: " + attrEnums);
-                            if (!attrEnums.isEmpty()) {
-                                generateChildAttributeEnumerationTests(
-                                    elementName, childName, childInfo.isReference, 
-                                    attrName, attrEnums, targetNamespace, schemaFile);
+                    // Negative test with invalid value
+                    String invalidValue = "INVALID_" + System.currentTimeMillis();
+                    StringBuilder xml = new StringBuilder();
+                    xml.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+                    xml.append("<").append(elementName)
+                       .append(" xmlns=\"").append(targetNamespace).append("\"")
+                       .append(" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"")
+                       .append(" xsi:schemaLocation=\"").append(targetNamespace).append(" schemas/vehicles.xsd\"")
+                       .append(">\n");
+                    for (ElementInfo info : childElements) {
+                        String cname = info.name;
+                        String localCname = cname.contains(":") ? cname.substring(cname.indexOf(":") + 1) : cname;
+                        Element cElement = null;
+                        if (info.isReference) {
+                            cElement = generator.getGlobalElementDefinitions().get(localCname);
+                        } else if (parentComplexType != null) {
+                            NodeList elements = parentComplexType.getElementsByTagNameNS(javax.xml.XMLConstants.W3C_XML_SCHEMA_NS_URI, "element");
+                            for (int i = 0; i < elements.getLength(); i++) {
+                                Element el = (Element) elements.item(i);
+                                if (localCname.equals(el.getAttribute("name"))) {
+                                    cElement = el;
+                                    break;
+                                }
                             }
                         }
+                        String value;
+                        if (localCname.equals(localChildName)) {
+                            value = invalidValue;
+                        } else {
+                            value = xmlValueHelper.getElementValue(cElement);
+                        }
+                        xml.append("  <").append(localCname).append(">").append(value).append("</").append(localCname).append(">\n");
                     }
-                    if (generator.getGlobalElementDefinitions().containsKey(localChildName)) {
-                        generateEnumerationTests(localChildName, generator.getGlobalElementDefinitions().get(localChildName), 
-                                              targetNamespace, schemaFile);
-                    }
+                    xml.append("</").append(elementName).append(">\n");
+                    String fileName = "test-output/negative/enumeration/" + elementName + "_" + localChildName + "_invalid.xml";
+                    generator.writeTestFile(fileName, xml.toString());
+                    System.out.println("[LOG] Wrote negative child enum test: " + fileName);
+                    generator.validateAgainstSchema(fileName, schemaFile, false);
                 }
             }
         }

@@ -35,13 +35,8 @@ public class TestXmlGenerator {
         if (namespace != null && !namespace.isEmpty()) {
             xml.append("<").append(parentName);
             xml.append(" xmlns=\"").append(namespace).append("\"");
-            // Add other namespace declarations if needed (skip prefix for root)
-            for (Map.Entry<String, String> entry : generator.getNamespaceMap().entrySet()) {
-                if (!entry.getValue().equals(namespace)) {
-                    xml.append(" xmlns:").append(entry.getKey())
-                       .append("=\"").append(entry.getValue()).append("\"");
-                }
-            }
+            xml.append(" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"");
+            xml.append(" xsi:schemaLocation=\"").append(namespace).append(" schemas/vehicles.xsd\"");
             xml.append(">\n");
         } else {
             xml.append("<").append(parentName).append(">\n");
@@ -448,32 +443,13 @@ public class TestXmlGenerator {
         
         // Add namespace if needed
         if (namespace != null && !namespace.isEmpty()) {
-            String prefix = generator.getDefaultNamespacePrefix();
-            boolean hasPrefix = prefix != null && !prefix.isEmpty();
-            
-            xml.append("<");
-            if (hasPrefix) {
-                xml.append(prefix).append(":");
-            }
-            xml.append(elementName);
-            
-            // Add namespace declarations
-            for (Map.Entry<String, String> entry : generator.getNamespaceMap().entrySet()) {
-                xml.append(" xmlns:").append(entry.getKey())
-                   .append("=\"").append(entry.getValue()).append("\"");
-            }
-            // Add the default namespace declaration if no prefix is used
-            String defaultNsUri = generator.getNamespaceMap().get(prefix);
-            if (!hasPrefix && defaultNsUri != null) {
-                xml.append(" xmlns=\"").append(defaultNsUri).append("\"");
-            }
+            xml.append("<").append(elementName);
+            xml.append(" xmlns=\"").append(namespace).append("\"");
+            xml.append(" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"");
+            xml.append(" xsi:schemaLocation=\"").append(namespace).append(" schemas/vehicles.xsd\"");
             xml.append(">")
                .append(value)
-               .append("</");
-            if (hasPrefix) {
-                xml.append(prefix).append(":");
-            }
-            xml.append(elementName).append(">\n");
+               .append("</").append(elementName).append(">\n");
         } else {
             xml.append("<").append(elementName).append(">")
                .append(value)
@@ -499,35 +475,16 @@ public class TestXmlGenerator {
         
         // Add namespace if needed
         if (namespace != null && !namespace.isEmpty()) {
-            String prefix = generator.getDefaultNamespacePrefix();
-            boolean hasPrefix = prefix != null && !prefix.isEmpty();
-            
-            xml.append("<");
-            if (hasPrefix) {
-                xml.append(prefix).append(":");
-            }
-            xml.append(elementName);
-            
-            // Add namespace declarations
-            for (Map.Entry<String, String> entry : generator.getNamespaceMap().entrySet()) {
-                xml.append(" xmlns:").append(entry.getKey())
-                   .append("=\"").append(entry.getValue()).append("\"");
-            }
-            // Add the default namespace declaration if no prefix is used
-            String defaultNsUri = generator.getNamespaceMap().get(prefix);
-            if (!hasPrefix && defaultNsUri != null) {
-                xml.append(" xmlns=\"").append(defaultNsUri).append("\"");
-            }
+            xml.append("<").append(elementName);
+            xml.append(" xmlns=\"").append(namespace).append("\"");
+            xml.append(" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"");
+            xml.append(" xsi:schemaLocation=\"").append(namespace).append(" schemas/vehicles.xsd\"");
             // Only add attribute if it's valid for this element
             if (elementDef == null || xmlValueHelper.isAttributeValidForElement(elementDef, attrName)) {
                 xml.append(" ").append(attrName).append("=\"").append(value).append("\"");
             }
             xml.append(">")
-               .append("</");
-            if (hasPrefix) {
-                xml.append(prefix).append(":");
-            }
-            xml.append(elementName).append(">\n");
+               .append("</").append(elementName).append(">\n");
         } else {
             xml.append("<").append(elementName);
             
@@ -563,43 +520,19 @@ public class TestXmlGenerator {
         }
         
         // Add parent with namespaces
-        xml.append("<");
-        if (hasParentPrefix) {
-            xml.append(parentPrefix).append(":");
-        }
-        xml.append(parentName);
-        
-        // Add namespace declarations
-        for (Map.Entry<String, String> entry : generator.getNamespaceMap().entrySet()) {
-            xml.append(" xmlns:").append(entry.getKey())
-               .append("=\"").append(entry.getValue()).append("\"");
-        }
-        // Add the default namespace declaration if no prefix is used
-        String defaultNsUri = generator.getNamespaceMap().get(parentPrefix);
-        if (!hasParentPrefix && defaultNsUri != null) {
-            xml.append(" xmlns=\"").append(defaultNsUri).append("\"");
-        }
+        xml.append("<").append(parentName);
+        xml.append(" xmlns=\"").append(namespace).append("\"");
+        xml.append(" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"");
+        xml.append(" xsi:schemaLocation=\"").append(namespace).append(" schemas/vehicles.xsd\"");
         xml.append(">\n");
         
         // Add child with value
-        xml.append("  <");
-        if (hasChildPrefix) {
-            xml.append(childPrefix).append(":");
-        }
-        xml.append(localChildName).append(">")
+        xml.append("  <").append(localChildName).append(">")
            .append(value)
-           .append("</");
-        if (hasChildPrefix) {
-            xml.append(childPrefix).append(":");
-        }
-        xml.append(localChildName).append(">\n");
+           .append("</").append(localChildName).append(">\n");
         
         // Close parent
-        xml.append("</");
-        if (hasParentPrefix) {
-            xml.append(parentPrefix).append(":");
-        }
-        xml.append(parentName).append(">\n");
+        xml.append("</").append(parentName).append(">\n");
         
         return xml.toString();
     }
@@ -629,30 +562,14 @@ public class TestXmlGenerator {
         Element childDef = generator.getGlobalElementDefinitions().get(localName);
         
         // Add parent with namespaces
-        xml.append("<");
-        if (hasParentPrefix) {
-            xml.append(parentPrefix).append(":");
-        }
-        xml.append(parentName);
-        
-        // Add namespace declarations
-        for (Map.Entry<String, String> entry : generator.getNamespaceMap().entrySet()) {
-            xml.append(" xmlns:").append(entry.getKey())
-               .append("=\"").append(entry.getValue()).append("\"");
-        }
-        // Add the default namespace declaration if no prefix is used
-        String defaultNsUri = generator.getNamespaceMap().get(parentPrefix);
-        if (!hasParentPrefix && defaultNsUri != null) {
-            xml.append(" xmlns=\"").append(defaultNsUri).append("\"");
-        }
+        xml.append("<").append(parentName);
+        xml.append(" xmlns=\"").append(namespace).append("\"");
+        xml.append(" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"");
+        xml.append(" xsi:schemaLocation=\"").append(namespace).append(" schemas/vehicles.xsd\"");
         xml.append(">\n");
         
         // Add child with attribute
-        xml.append("  <");
-        if (hasChildPrefix) {
-            xml.append(childPrefix).append(":");
-        }
-        xml.append(localChildName);
+        xml.append("  <").append(localChildName);
         
         // Only add attribute if it's valid for this element
         if (childDef == null || xmlValueHelper.isAttributeValidForElement(childDef, attrName)) {
@@ -661,18 +578,10 @@ public class TestXmlGenerator {
         
         xml.append(">")
            .append("TestContent")
-           .append("</");
-        if (hasChildPrefix) {
-            xml.append(childPrefix).append(":");
-        }
-        xml.append(localChildName).append(">\n");
+           .append("</").append(localChildName).append(">\n");
         
         // Close parent
-        xml.append("</");
-        if (hasParentPrefix) {
-            xml.append(parentPrefix).append(":");
-        }
-        xml.append(parentName).append(">\n");
+        xml.append("</").append(parentName).append(">\n");
         
         return xml.toString();
     }

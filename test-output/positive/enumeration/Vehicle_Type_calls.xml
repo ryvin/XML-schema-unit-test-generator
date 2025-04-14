@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Vehicle xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+<Vehicle xmlns="http://www.siri.org.uk/siri" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.siri.org.uk/siri schemas/vehicles.xsd">
+  <VehicleID>SampleString</VehicleID>
   <Type>calls</Type>
 </Vehicle>
