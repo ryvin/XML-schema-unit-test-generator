@@ -145,6 +145,46 @@ If generated test files fail validation unexpectedly, check:
 3. Complex type definitions
 4. Custom type definitions
 
+### Java Not Recognized (`javac` or `java` not found)
+
+If you see an error like:
+
+```
+javac: The term 'javac' is not recognized as a name of a cmdlet, function, script file, or executable program.
+```
+
+This means Java is not installed or not added to your system PATH. To resolve:
+
+1. **Install the JDK**
+   Download the latest OpenJDK (recommended) or Oracle JDK from:
+   https://adoptium.net/ or https://www.oracle.com/java/technologies/downloads/
+
+2. **Install and note the installation path**
+   For example: `C:\Program Files\AdoptOpenJDK\jdk-17.0.2\`
+
+3. **Add Java to your PATH**
+   - Open the Start menu, search for "Environment Variables", and select "Edit the system environment variables".
+   - Click "Environment Variables".
+   - Under "System variables", find and select the `Path` variable, then click "Edit".
+   - Click "New" and add the path to the JDK's `bin` directory (e.g., `C:\Program Files\AdoptOpenJDK\jdk-17.0.2\bin`).
+   - Click OK to close all dialogs.
+
+4. **Verify installation**
+   Open a new terminal and run:
+   ```
+   java -version
+   javac -version
+   ```
+   Both commands should print version information.
+
+5. **Retry compiling and running the generator**
+   ```
+   javac *.java
+   java XMLSchemaTestGenerator your-schema.xsd
+   ```
+
+If you still encounter issues, ensure there are no typos in the path and that you opened a new terminal after updating the PATH.
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.

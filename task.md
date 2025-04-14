@@ -17,6 +17,7 @@ Resolve validation errors in generated XML test files, ensuring:
 
 ### 1. Review Project Documentation and Troubleshooting
 - [x] Read README for usage, troubleshooting, and limitations.
+- [x] Added detailed troubleshooting steps for "javac/java not recognized" to README.
 
 ### 2. Analyze Code for Error Sources
 - [x] Review how required child elements are determined and generated.
