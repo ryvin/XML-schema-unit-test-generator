@@ -143,9 +143,10 @@ public class TestXmlGenerator {
                     for (int a = 0; a < attributes.getLength(); a++) {
                         Element attrElem = (Element) attributes.item(a);
                         String attrName = attrElem.getAttribute("name");
-                        // Only add 'type' if it is explicitly defined as an attribute, not as a type definition
+                        // Only add attribute if it is explicitly defined for this element
                         if (attrName == null || attrName.trim().isEmpty()) continue;
-                        if (attrName.equals("type") && !attrElem.getTagName().endsWith("attribute")) continue;
+                        // Never add 'type' as an attribute unless it is explicitly defined as an attribute (not a type reference)
+                        if (attrName.equals("type") && (!attrElem.getTagName().endsWith("attribute") || !attrElem.hasAttribute("name"))) continue;
                         String attrValue = xmlValueHelper.getAttributeValue(attrElem);
                         attrBuilder.append(" ").append(attrName).append("=\"").append(attrValue).append("\"");
                     }

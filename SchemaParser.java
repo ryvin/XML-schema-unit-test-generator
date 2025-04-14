@@ -9,6 +9,8 @@ import org.w3c.dom.*;
 public class SchemaParser {
     
     private XMLSchemaTestGenerator generator;
+    // Map to store all global type definitions (simpleType and complexType) by name
+    private Map<String, Element> typeDefinitions = new HashMap<>();
     
     public SchemaParser(XMLSchemaTestGenerator generator) {
         this.generator = generator;
@@ -90,7 +92,7 @@ public class SchemaParser {
             Node parent = element.getParentNode();
             
             // Check if this is a global element (direct child of schema)
-            if (parent != null && 
+            if (parent != null &&
                 (parent.getLocalName().equals("schema") || parent.getNodeName().equals("xs:schema"))) {
                 String name = element.getAttribute("name");
                 if (!name.isEmpty()) {
@@ -101,6 +103,31 @@ public class SchemaParser {
                     if (!childElements.isEmpty()) {
                         generator.getGlobalElementsMap().put(name, childElements);
                     }
+                }
+            }
+        }
+        // Index all global simpleType and complexType definitions
+        NodeList simpleTypes = schemaDoc.getElementsByTagNameNS(XMLConstants.W3C_XML_SCHEMA_NS_URI, "simpleType");
+        for (int i = 0; i < simpleTypes.getLength(); i++) {
+            Element typeElem = (Element) simpleTypes.item(i);
+            Node parent = typeElem.getParentNode();
+            if (parent != null &&
+                (parent.getLocalName().equals("schema") || parent.getNodeName().equals("xs:schema"))) {
+                String name = typeElem.getAttribute("name");
+                if (!name.isEmpty()) {
+                    typeDefinitions.put(name, typeElem);
+                }
+            }
+        }
+        NodeList complexTypes = schemaDoc.getElementsByTagNameNS(XMLConstants.W3C_XML_SCHEMA_NS_URI, "complexType");
+        for (int i = 0; i < complexTypes.getLength(); i++) {
+            Element typeElem = (Element) complexTypes.item(i);
+            Node parent = typeElem.getParentNode();
+            if (parent != null &&
+                (parent.getLocalName().equals("schema") || parent.getNodeName().equals("xs:schema"))) {
+                String name = typeElem.getAttribute("name");
+                if (!name.isEmpty()) {
+                    typeDefinitions.put(name, typeElem);
                 }
             }
         }
@@ -211,12 +238,28 @@ public class SchemaParser {
                 }
             }
         }
-        
-        // Check for type attribute with enumeration
-        String typeName = element.getAttribute("type");
-        if (!typeName.isEmpty()) {
-            // This is simplified - a full implementation would need to resolve type references
-            // to find their enumerations if they're simple types with restrictions
+
+        // If no inline enumerations, check for type attribute and resolve type
+        if (values.isEmpty()) {
+            String typeName = element.getAttribute("type");
+            if (!typeName.isEmpty()) {
+                // Remove prefix if present
+                String resolvedTypeName = typeName.contains(":") ? typeName.split(":")[1] : typeName;
+                Element typeDef = resolveTypeDefinition(resolvedTypeName);
+                if (typeDef != null) {
+                    // Only handle simpleType for enumerations
+                    if (typeDef.getLocalName().equals("simpleType")) {
+                        Element restriction = generator.findChildElement(typeDef, "restriction");
+                        if (restriction != null) {
+                            NodeList enumerations = restriction.getElementsByTagNameNS(XMLConstants.W3C_XML_SCHEMA_NS_URI, "enumeration");
+                            for (int i = 0; i < enumerations.getLength(); i++) {
+                                Element enumeration = (Element) enumerations.item(i);
+                                values.add(enumeration.getAttribute("value"));
+                            }
+                        }
+                    }
+                }
+            }
         }
         
         // Cache the results
@@ -224,5 +267,13 @@ public class SchemaParser {
             generator.getEnumValueCache().put(elementId, values);
         }
         return values;
+    }
+
+    // Resolve a type name to its global type definition element
+    public Element resolveTypeDefinition(String typeName) {
+        if (typeDefinitions.containsKey(typeName)) {
+            return typeDefinitions.get(typeName);
+        }
+        return null;
     }
 }
