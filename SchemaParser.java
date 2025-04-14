@@ -19,7 +19,7 @@ public class SchemaParser {
     private XMLSchemaTestGenerator generator;
     
     // Map to store all global type definitions (simpleType and complexType) by name
-    private static Map<String, Element> typeDefinitions = new HashMap<>();
+    public static Map<String, Element> typeDefinitions = new HashMap<>();
     
     // Map to track resolved references to avoid circular reference issues
     private Set<String> resolvedReferences = new HashSet<>();

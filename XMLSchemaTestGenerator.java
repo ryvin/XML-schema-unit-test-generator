@@ -165,10 +165,12 @@ public class XMLSchemaTestGenerator {
                 typeDef = ((XMLSchemaTestGenerator)this).getTypeDefinition(typeName);
             } else {
                 // fallback: try static map
-                typeDef = SchemaParser.getTypeDefinition(typeName);
+                typeDef = SchemaParser.typeDefinitions.get(typeName);
             }
             System.out.println("[DEBUG] XMLSchemaTestGenerator.findChildElement: Resolved type attribute '" + typeAttr + "' to typeDef='" + (typeDef != null ? typeDef.getAttribute("name") : "<null>") + "'");
             if (typeDef != null) {
+                // --- DEBUG: Print before searching for actual child ---
+                System.out.println("[DEBUG] XMLSchemaTestGenerator.findChildElement: Searching resolved complexType '" + typeDef.getAttribute("name") + "' for child '" + localName + "'");
                 // Search <sequence> for child
                 NodeList seqs = typeDef.getElementsByTagName("sequence");
                 for (int s = 0; s < seqs.getLength(); s++) {
