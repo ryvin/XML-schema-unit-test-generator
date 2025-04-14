@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <vh:vehicles xmlns:vh="http://example.com/vehicles" xmlns:xs="http://www.w3.org/2001/XMLSchema">
-  <vh:cars type="INVALID_1744569487177">TestContent</vh:cars>
+  <vh:vh:cars type="INVALID_1744606297147">
+    <vh:car>SampleValue</vh:car>
+  </vh:vh:cars>
 </vh:vehicles>

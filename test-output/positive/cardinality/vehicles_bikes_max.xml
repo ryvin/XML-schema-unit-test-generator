@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <vh:vehicles xmlns:vh="http://example.com/vehicles" xmlns:xs="http://www.w3.org/2001/XMLSchema">
-  <vh:cars>
+  <vh:cars type="sedan">
   <vh:car type="sedan">
   <vh:make>SampleString</vh:make>
-  <vh:model>SampleString</vh:model>
-  <vh:year>2020</vh:year>
+  <vh:model>SampleString363</vh:model>
+  <vh:year>2025</vh:year>
   </vh:car>
   </vh:cars>
   <vh:bikes>
   <vh:bike>
-  <vh:brand>SampleString</vh:brand>
-  <vh:type>mountain</vh:type>
+  <vh:brand>SampleString297</vh:brand>
+  <vh:type>sedan</vh:type>
   </vh:bike>
   </vh:bikes>
 </vh:vehicles>
