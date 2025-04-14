@@ -220,6 +220,8 @@ public class TestXmlGenerator {
             // Skip attributes without a name
             if (attrName == null || attrName.trim().isEmpty()) {
                 continue;
+            }
+            
             // Verify this attribute belongs to this element
             if (!xmlValueHelper.isAttributeValidForElement(elementDef, attrName)) {
                 continue;
@@ -229,162 +231,249 @@ public class TestXmlGenerator {
             String attrValue = xmlValueHelper.getAttributeValue(attrElem);
             attrBuilder.append(" ").append(attrName).append("=\"").append(attrValue).append("\"");
         }
-    
+        
         return attrBuilder;
-}
-
-/**
- * Check if an element is a simple type
- */
-private boolean isSimpleTypeElement(Element element) {
-    if (element == null) {
-        return false;
     }
     
-    // Check if element has children
-    List<ElementInfo> children = schemaParser.findChildElements(element);
-    if (!children.isEmpty()) {
-        return false;
-    }
-    
-    // Check for simple type definition
-    Element simpleType = generator.findChildElement(element, "simpleType");
-    if (simpleType != null) {
-        return true;
-    }
-    
-    // Check for complex type with simple content
-    Element complexType = generator.findChildElement(element, "complexType");
-    if (complexType != null) {
-        Element simpleContent = generator.findChildElement(complexType, "simpleContent");
-        if (simpleContent != null) {
+    /**
+     * Check if an element is a simple type
+     */
+    private boolean isSimpleTypeElement(Element element) {
+        if (element == null) {
+            return false;
+        }
+        
+        // Check if element has children
+        List<ElementInfo> children = schemaParser.findChildElements(element);
+        if (!children.isEmpty()) {
+            return false;
+        }
+        
+        // Check for simple type definition
+        Element simpleType = generator.findChildElement(element, "simpleType");
+        if (simpleType != null) {
             return true;
         }
-    }
-    
-    // Check type attribute for built-in simple types
-    String type = element.getAttribute("type");
-    if (!type.isEmpty()) {
-        // Remove namespace prefix if present
-        String localType = type.contains(":") ? type.substring(type.indexOf(":") + 1) : type;
         
-        // Common built-in simple types
-        if (localType.endsWith("string") || localType.endsWith("integer") || 
-            localType.endsWith("decimal") || localType.endsWith("boolean") || 
-            localType.endsWith("date") || localType.endsWith("time") ||
-            localType.endsWith("gYear")) {
-            return true;
-        }
-    }
-    
-    return false;
-}
-
-/**
- * Get children for an element
- */
-private List<ElementInfo> getElementChildren(Element element) {
-    if (element == null) {
-        return Collections.emptyList();
-    }
-    
-    return schemaParser.findChildElements(element);
-}
-
-/**
- * Add child elements to XML
- */
-private void addChildElements(StringBuilder xml, List<ElementInfo> children, Element parentElement, 
-                             String namespace, String prefix) {
-    for (ElementInfo child : children) {
-        int childCount = Math.max(child.minOccurs, 1); // Always at least 1
-        
-        // Find schema element for this child
-        Element childSchemaElement = findChildElement(parentElement, child.name);
-        
-        // Get child local name
-        String childLocalName = child.name;
-        if (child.name.contains(":")) {
-            childLocalName = child.name.substring(child.name.indexOf(":") + 1);
-        }
-        
-        if (child.isSimpleType) {
-            for (int i = 0; i < childCount; i++) {
-                xml.append("    <").append(prefix).append(":").append(childLocalName).append(">");
-                
-                // Generate appropriate value
-                String value = xmlValueHelper.getElementValue(childSchemaElement);
-                xml.append(value);
-                
-                xml.append("</").append(prefix).append(":").append(childLocalName).append(">\n");
+        // Check for complex type with simple content
+        Element complexType = generator.findChildElement(element, "complexType");
+        if (complexType != null) {
+            Element simpleContent = generator.findChildElement(complexType, "simpleContent");
+            if (simpleContent != null) {
+                return true;
             }
+        }
+        
+        // Check type attribute for built-in simple types
+        String type = element.getAttribute("type");
+        if (!type.isEmpty()) {
+            // Remove namespace prefix if present
+            String localType = type.contains(":") ? type.substring(type.indexOf(":") + 1) : type;
+            
+            // Common built-in simple types
+            if (localType.endsWith("string") || localType.endsWith("integer") || 
+                localType.endsWith("decimal") || localType.endsWith("boolean") || 
+                localType.endsWith("date") || localType.endsWith("time") ||
+                localType.endsWith("gYear")) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Get children for an element
+     */
+    private List<ElementInfo> getElementChildren(Element element) {
+        if (element == null) {
+            return Collections.emptyList();
+        }
+        
+        return schemaParser.findChildElements(element);
+    }
+    
+    /**
+     * Add child elements to XML
+     */
+    private void addChildElements(StringBuilder xml, List<ElementInfo> children, Element parentElement, 
+                                 String namespace, String prefix) {
+        for (ElementInfo child : children) {
+            int childCount = Math.max(child.minOccurs, 1); // Always at least 1
+            
+            // Find schema element for this child
+            Element childSchemaElement = findChildElement(parentElement, child.name);
+            
+            // Get child local name
+            String childLocalName = child.name;
+            if (child.name.contains(":")) {
+                childLocalName = child.name.substring(child.name.indexOf(":") + 1);
+            }
+            
+            if (child.isSimpleType) {
+                for (int i = 0; i < childCount; i++) {
+                    xml.append("    <").append(prefix).append(":").append(childLocalName).append(">");
+                    
+                    // Generate appropriate value
+                    String value = xmlValueHelper.getElementValue(childSchemaElement);
+                    xml.append(value);
+                    
+                    xml.append("</").append(prefix).append(":").append(childLocalName).append(">\n");
+                }
+            } else {
+                // Recursively add complex child elements
+                addCompleteElementInstance(xml, child.name, child.isReference, childCount, namespace, childSchemaElement);
+            }
+        }
+    }
+    
+    /**
+     * Find a child element by name
+     */
+    private Element findChildElement(Element parentElement, String childName) {
+        if (parentElement == null) {
+            return null;
+        }
+        
+        // Extract local name if it's a qualified name with prefix
+        String localChildName = childName;
+        if (childName.contains(":")) {
+            localChildName = childName.substring(childName.indexOf(":") + 1);
+        }
+        
+        // Find complex type
+        Element complexType = generator.findChildElement(parentElement, "complexType");
+        if (complexType == null) {
+            return null;
+        }
+        
+        // Look for child element in sequence, choice, or all
+        for (String compositorName : new String[]{"sequence", "choice", "all"}) {
+            Element compositor = generator.findChildElement(complexType, compositorName);
+            if (compositor != null) {
+                NodeList elements = compositor.getElementsByTagNameNS(XMLConstants.W3C_XML_SCHEMA_NS_URI, "element");
+                for (int i = 0; i < elements.getLength(); i++) {
+                    Element el = (Element) elements.item(i);
+                    
+                    // Skip if not direct child of compositor
+                    if (el.getParentNode() != compositor) {
+                        continue;
+                    }
+                    
+                    String name = el.getAttribute("name");
+                    String ref = el.getAttribute("ref");
+                    
+                    if ((!name.isEmpty() && name.equals(localChildName)) || 
+                        (!ref.isEmpty() && (ref.equals(childName) || ref.endsWith(":" + localChildName)))) {
+                        return el;
+                    }
+                }
+            }
+        }
+        
+        // Element not found in parent
+        return null;
+    }
+    
+    /**
+     * Generate XML with specific element value
+     */
+    public String generateXmlWithValue(String elementName, String value, String namespace) {
+        StringBuilder xml = new StringBuilder();
+        xml.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+        
+        // Add namespace if needed
+        if (namespace != null && !namespace.isEmpty()) {
+            String prefix = generator.getDefaultNamespacePrefix();
+            
+            xml.append("<").append(prefix).append(":").append(elementName);
+            
+            // Add namespace declarations
+            for (Map.Entry<String, String> entry : generator.getNamespaceMap().entrySet()) {
+                xml.append(" xmlns:").append(entry.getKey())
+                   .append("=\"").append(entry.getValue()).append("\"");
+            }
+            
+            xml.append(">")
+               .append(value)
+               .append("</").append(prefix).append(":").append(elementName).append(">\n");
         } else {
-            // Recursively add complex child elements
-            addCompleteElementInstance(xml, child.name, child.isReference, childCount, namespace, childSchemaElement);
+            xml.append("<").append(elementName).append(">")
+               .append(value)
+               .append("</").append(elementName).append(">\n");
         }
-    }
-}
-
-/**
- * Find a child element by name
- */
-private Element findChildElement(Element parentElement, String childName) {
-    if (parentElement == null) {
-        return null;
+        
+        return xml.toString();
     }
     
-    // Extract local name if it's a qualified name with prefix
-    String localChildName = childName;
-    if (childName.contains(":")) {
-        localChildName = childName.substring(childName.indexOf(":") + 1);
-    }
-    
-    // Find complex type
-    Element complexType = generator.findChildElement(parentElement, "complexType");
-    if (complexType == null) {
-        return null;
-    }
-    
-    // Look for child element in sequence, choice, or all
-    for (String compositorName : new String[]{"sequence", "choice", "all"}) {
-        Element compositor = generator.findChildElement(complexType, compositorName);
-        if (compositor != null) {
-            NodeList elements = compositor.getElementsByTagNameNS(XMLConstants.W3C_XML_SCHEMA_NS_URI, "element");
-            for (int i = 0; i < elements.getLength(); i++) {
-                Element el = (Element) elements.item(i);
-                
-                // Skip if not direct child of compositor
-                if (el.getParentNode() != compositor) {
-                    continue;
-                }
-                
-                String name = el.getAttribute("name");
-                String ref = el.getAttribute("ref");
-                
-                if ((!name.isEmpty() && name.equals(localChildName)) || 
-                    (!ref.isEmpty() && (ref.equals(childName) || ref.endsWith(":" + localChildName)))) {
-                    return el;
-                }
+    /**
+     * Generate XML with specific attribute value
+     */
+    public String generateXmlWithAttributeValue(String elementName, String attrName, String value, String namespace) {
+        StringBuilder xml = new StringBuilder();
+        xml.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+        
+        // Get the element definition
+        String localName = elementName;
+        if (elementName.contains(":")) {
+            localName = elementName.substring(elementName.indexOf(":") + 1);
+        }
+        Element elementDef = generator.getGlobalElementDefinitions().get(localName);
+        
+        // Add namespace if needed
+        if (namespace != null && !namespace.isEmpty()) {
+            String prefix = generator.getDefaultNamespacePrefix();
+            
+            xml.append("<").append(prefix).append(":").append(elementName);
+            
+            // Add namespace declarations
+            for (Map.Entry<String, String> entry : generator.getNamespaceMap().entrySet()) {
+                xml.append(" xmlns:").append(entry.getKey())
+                   .append("=\"").append(entry.getValue()).append("\"");
             }
+            
+            // Only add attribute if it's valid for this element
+            if (elementDef == null || xmlValueHelper.isAttributeValidForElement(elementDef, attrName)) {
+                xml.append(" ").append(attrName).append("=\"").append(value).append("\"");
+            }
+            
+            xml.append(">")
+               .append("</").append(prefix).append(":").append(elementName).append(">\n");
+        } else {
+            xml.append("<").append(elementName);
+            
+            // Only add attribute if it's valid for this element
+            if (elementDef == null || xmlValueHelper.isAttributeValidForElement(elementDef, attrName)) {
+                xml.append(" ").append(attrName).append("=\"").append(value).append("\"");
+            }
+            
+            xml.append(">")
+               .append("</").append(elementName).append(">\n");
         }
+        
+        return xml.toString();
     }
     
-    // Element not found in parent
-    return null;
-}
-
-/**
- * Generate XML with specific element value
- */
-public String generateXmlWithValue(String elementName, String value, String namespace) {
-    StringBuilder xml = new StringBuilder();
-    xml.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
-    
-    // Add namespace if needed
-    if (namespace != null && !namespace.isEmpty()) {
-        String prefix = generator.getDefaultNamespacePrefix();
+    /**
+     * Generate XML with parent and child element with specific value
+     */
+    public String generateParentXmlWithChildValue(String parentName, String childName, boolean isReference,
+                                                String value, String namespace) {
+        StringBuilder xml = new StringBuilder();
+        xml.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
         
-        xml.append("<").append(prefix).append(":").append(elementName);
+        String parentPrefix = generator.getDefaultNamespacePrefix();
+        String childPrefix = parentPrefix;
+        String localChildName = childName;
+        
+        if (childName.contains(":")) {
+            String[] parts = childName.split(":");
+            childPrefix = parts[0];
+            localChildName = parts[1];
+        }
+        
+        // Add parent with namespaces
+        xml.append("<").append(parentPrefix).append(":").append(parentName);
         
         // Add namespace declarations
         for (Map.Entry<String, String> entry : generator.getNamespaceMap().entrySet()) {
@@ -392,37 +481,43 @@ public String generateXmlWithValue(String elementName, String value, String name
                .append("=\"").append(entry.getValue()).append("\"");
         }
         
-        xml.append(">")
-           .append(value)
-           .append("</").append(prefix).append(":").append(elementName).append(">\n");
-    } else {
-        xml.append("<").append(elementName).append(">")
-           .append(value)
-           .append("</").append(elementName).append(">\n");
-    }
-    
-    return xml.toString();
-}
-
-/**
- * Generate XML with specific attribute value
- */
-public String generateXmlWithAttributeValue(String elementName, String attrName, String value, String namespace) {
-    StringBuilder xml = new StringBuilder();
-    xml.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
-    
-    // Get the element definition
-    String localName = elementName;
-    if (elementName.contains(":")) {
-        localName = elementName.substring(elementName.indexOf(":") + 1);
-    }
-    Element elementDef = generator.getGlobalElementDefinitions().get(localName);
-    
-    // Add namespace if needed
-    if (namespace != null && !namespace.isEmpty()) {
-        String prefix = generator.getDefaultNamespacePrefix();
+        xml.append(">\n");
         
-        xml.append("<").append(prefix).append(":").append(elementName);
+        // Add child with value
+        xml.append("  <").append(childPrefix).append(":").append(localChildName).append(">")
+           .append(value)
+           .append("</").append(childPrefix).append(":").append(localChildName).append(">\n");
+        
+        // Close parent
+        xml.append("</").append(parentPrefix).append(":").append(parentName).append(">\n");
+        
+        return xml.toString();
+    }
+    
+    /**
+     * Generate XML with parent, child element, and attribute
+     */
+    public String generateParentXmlWithChildAttribute(String parentName, String childName, boolean isReference,
+                                                    String attrName, String value, String namespace) {
+        StringBuilder xml = new StringBuilder();
+        xml.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+        
+        String parentPrefix = generator.getDefaultNamespacePrefix();
+        String childPrefix = parentPrefix;
+        String localChildName = childName;
+        
+        if (childName.contains(":")) {
+            String[] parts = childName.split(":");
+            childPrefix = parts[0];
+            localChildName = parts[1];
+        }
+        
+        // Find child element definition
+        String localName = localChildName;
+        Element childDef = generator.getGlobalElementDefinitions().get(localName);
+        
+        // Add parent with namespaces
+        xml.append("<").append(parentPrefix).append(":").append(parentName);
         
         // Add namespace declarations
         for (Map.Entry<String, String> entry : generator.getNamespaceMap().entrySet()) {
@@ -430,116 +525,23 @@ public String generateXmlWithAttributeValue(String elementName, String attrName,
                .append("=\"").append(entry.getValue()).append("\"");
         }
         
+        xml.append(">\n");
+        
+        // Add child with attribute
+        xml.append("  <").append(childPrefix).append(":").append(localChildName);
+        
         // Only add attribute if it's valid for this element
-        if (elementDef == null || xmlValueHelper.isAttributeValidForElement(elementDef, attrName)) {
+        if (childDef == null || xmlValueHelper.isAttributeValidForElement(childDef, attrName)) {
             xml.append(" ").append(attrName).append("=\"").append(value).append("\"");
         }
         
         xml.append(">")
-           .append("</").append(prefix).append(":").append(elementName).append(">\n");
-    } else {
-        xml.append("<").append(elementName);
+           .append("TestContent")
+           .append("</").append(childPrefix).append(":").append(localChildName).append(">\n");
         
-        // Only add attribute if it's valid for this element
-        if (elementDef == null || xmlValueHelper.isAttributeValidForElement(elementDef, attrName)) {
-            xml.append(" ").append(attrName).append("=\"").append(value).append("\"");
-        }
+        // Close parent
+        xml.append("</").append(parentPrefix).append(":").append(parentName).append(">\n");
         
-        xml.append(">")
-           .append("</").append(elementName).append(">\n");
+        return xml.toString();
     }
-    
-    return xml.toString();
-}
-
-/**
- * Generate XML with parent and child element with specific value
- */
-public String generateParentXmlWithChildValue(String parentName, String childName, boolean isReference,
-                                            String value, String namespace) {
-    StringBuilder xml = new StringBuilder();
-    xml.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
-    
-    String parentPrefix = generator.getDefaultNamespacePrefix();
-    String childPrefix = parentPrefix;
-    String localChildName = childName;
-    
-    if (childName.contains(":")) {
-        String[] parts = childName.split(":");
-        childPrefix = parts[0];
-        localChildName = parts[1];
-    }
-    
-    // Add parent with namespaces
-    xml.append("<").append(parentPrefix).append(":").append(parentName);
-    
-    // Add namespace declarations
-    for (Map.Entry<String, String> entry : generator.getNamespaceMap().entrySet()) {
-        xml.append(" xmlns:").append(entry.getKey())
-           .append("=\"").append(entry.getValue()).append("\"");
-    }
-    
-    xml.append(">\n");
-    
-    // Add child with value
-    xml.append("  <").append(childPrefix).append(":").append(localChildName).append(">")
-       .append(value)
-       .append("</").append(childPrefix).append(":").append(localChildName).append(">\n");
-    
-    // Close parent
-    xml.append("</").append(parentPrefix).append(":").append(parentName).append(">\n");
-    
-    return xml.toString();
-}
-
-/**
- * Generate XML with parent, child element, and attribute
- */
-public String generateParentXmlWithChildAttribute(String parentName, String childName, boolean isReference,
-                                                String attrName, String value, String namespace) {
-    StringBuilder xml = new StringBuilder();
-    xml.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
-    
-    String parentPrefix = generator.getDefaultNamespacePrefix();
-    String childPrefix = parentPrefix;
-    String localChildName = childName;
-    
-    if (childName.contains(":")) {
-        String[] parts = childName.split(":");
-        childPrefix = parts[0];
-        localChildName = parts[1];
-    }
-    
-    // Find child element definition
-    String localName = localChildName;
-    Element childDef = generator.getGlobalElementDefinitions().get(localName);
-    
-    // Add parent with namespaces
-    xml.append("<").append(parentPrefix).append(":").append(parentName);
-    
-    // Add namespace declarations
-    for (Map.Entry<String, String> entry : generator.getNamespaceMap().entrySet()) {
-        xml.append(" xmlns:").append(entry.getKey())
-           .append("=\"").append(entry.getValue()).append("\"");
-    }
-    
-    xml.append(">\n");
-    
-    // Add child with attribute
-    xml.append("  <").append(childPrefix).append(":").append(localChildName);
-    
-    // Only add attribute if it's valid for this element
-    if (childDef == null || xmlValueHelper.isAttributeValidForElement(childDef, attrName)) {
-        xml.append(" ").append(attrName).append("=\"").append(value).append("\"");
-    }
-    
-    xml.append(">")
-       .append("TestContent")
-       .append("</").append(childPrefix).append(":").append(localChildName).append(">\n");
-    
-    // Close parent
-    xml.append("</").append(parentPrefix).append(":").append(parentName).append(">\n");
-    
-    return xml.toString();
-}
 }
