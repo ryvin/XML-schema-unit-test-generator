@@ -8,8 +8,10 @@ Resolve validation errors in generated XML test files, ensuring:
 - No hardcoded variables or manual configuration is required.
 
 ## Error Summary
-- Some generated XML files are missing required child elements (e.g., 'vh:car' missing 'make', 'vh:bike' missing 'brand').
-- Some elements (e.g., 'vh:cars') have an unexpected 'type' attribute.
+- Some generated XML files are missing required child elements (e.g., 'vh:car' missing 'make', 'vh:bike' missing 'brand'). **[FIXED]**
+- Some elements (e.g., 'vh:cars') have an unexpected 'type' attribute. **[PERSISTS]**
+- Some generated values for elements with type 'gYear' or enumerations are empty or whitespace, causing validation errors. **[FIXED for gYear, enumeration bug persists for unrelated elements]**
+- Enumeration values are being used for the wrong element/attribute (e.g., 'sedan' for bike type). **[NEW/FOUND]**
 
 ## Plan & Tasks
 
@@ -18,18 +20,27 @@ Resolve validation errors in generated XML test files, ensuring:
 
 ### 2. Analyze Code for Error Sources
 - [x] Review how required child elements are determined and generated.
-  - **Finding:** The code did not resolve `<element ref="...">` to its global definition, so required children were missing for referenced elements.
+  - **Finding:** The code did not resolve `<element ref="...">` to its global definition, so required children were missing for referenced elements. **[FIXED]**
 - [x] Review logic for adding attributes to elements (especially 'type').
+  - **Finding:** The generator may add attributes (like 'type') that are not allowed by the schema. **[PERSISTS]**
+- [x] Review value generation for simple types and enumerations.
+  - **Finding:** Some generated values are empty or whitespace, causing validation errors. **[FIXED for gYear, enumeration bug persists for unrelated elements]**
+  - **Finding:** Enumeration values are being used for the wrong element/attribute (e.g., 'sedan' for bike type). **[NEW/FOUND]**
 
 ### 3. Implement Fixes
 - [x] Fix reference resolution: When a child element uses `ref="..."`, resolve it to the global element definition and include its required children.
 - [x] Update code to ensure all required child elements are generated.
 - [x] Refactor: Move attribute and value generation logic to new `XmlValueHelper.java` to reduce file size and improve maintainability.
 - [x] TestXmlGenerator.java is now within the preferred 300–400 line size.
+- [x] Fix: Ensure generated values for simple types and enumerations are never empty or whitespace. **[FIXED for gYear, enumeration bug persists for unrelated elements]**
+- [x] Fix: Only add attributes that are explicitly defined in the schema for each element. **[NOT FULLY FIXED]**
+- [ ] Fix: Ensure enumeration values are only used for the correct element/attribute, not shared across unrelated elements.
+- [ ] Fix: Ensure 'type' attribute is only added to <car>, not <cars>.
 
 ### 4. Test the Solution
-- [ ] Compile and run the generator on the provided schemas.
-- [ ] Validate all generated XML files.
+- [x] Compile and run the generator on the provided schemas.
+- [x] Validate all generated XML files for required children. [No missing required children errors]
+- [ ] Validate all generated XML files for correct values and allowed attributes. **[PERSISTS]**
 - [ ] Ensure no hardcoded variables/configuration are required.
 
 ### 5. Update Documentation and Commit Progress
@@ -37,5 +48,6 @@ Resolve validation errors in generated XML test files, ensuring:
 - [ ] Commit after each major step.
 
 ## Next Steps
-- Compile and test the application.
-- After validation, update documentation and commit the changes.
+- Fix enumeration value selection to ensure only valid values for the current element/attribute are used.
+- Fix attribute generation to ensure 'type' is only added to <car>, not <cars>.
+- Test and validate again, then update documentation and commit.

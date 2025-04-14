@@ -143,6 +143,9 @@ public class TestXmlGenerator {
                     for (int a = 0; a < attributes.getLength(); a++) {
                         Element attrElem = (Element) attributes.item(a);
                         String attrName = attrElem.getAttribute("name");
+                        // Only add 'type' if it is explicitly defined as an attribute, not as a type definition
+                        if (attrName == null || attrName.trim().isEmpty()) continue;
+                        if (attrName.equals("type") && !attrElem.getTagName().endsWith("attribute")) continue;
                         String attrValue = xmlValueHelper.getAttributeValue(attrElem);
                         attrBuilder.append(" ").append(attrName).append("=\"").append(attrValue).append("\"");
                     }
@@ -224,7 +227,36 @@ public class TestXmlGenerator {
                     if (childSchemaElement == null && generator.getGlobalElementDefinitions().containsKey(child.name)) {
                         childSchemaElement = generator.getGlobalElementDefinitions().get(child.name);
                     }
-                    addCompleteElementInstance(xml, child.name, child.isReference, childCount, elementNamespace, childSchemaElement);
+                    // If child is a simple type, generate value directly
+                    if (child.isSimpleType) {
+                        String prefixChild = generator.getDefaultNamespacePrefix();
+                        String localChildName = child.name;
+                        if (child.name.contains(":")) {
+                            String[] parts = child.name.split(":");
+                            prefixChild = parts[0];
+                            localChildName = parts[1];
+                        }
+                        xml.append("  <").append(prefixChild).append(":").append(localChildName).append(">");
+                        // Always use the correct schema node for value generation
+                        Element valueSchemaElement = childSchemaElement;
+                        // If this is a reference, resolve to the global element definition
+                        if (valueSchemaElement != null && valueSchemaElement.hasAttribute("ref")) {
+                            String refName = valueSchemaElement.getAttribute("ref");
+                            String refLocal = refName.contains(":") ? refName.split(":")[1] : refName;
+                            if (generator.getGlobalElementDefinitions().containsKey(refLocal)) {
+                                valueSchemaElement = generator.getGlobalElementDefinitions().get(refLocal);
+                            }
+                        }
+                        // If still null, fallback to the current child name in global definitions
+                        if (valueSchemaElement == null && generator.getGlobalElementDefinitions().containsKey(child.name)) {
+                            valueSchemaElement = generator.getGlobalElementDefinitions().get(child.name);
+                        }
+                        String value = xmlValueHelper.getElementValue(valueSchemaElement);
+                        xml.append(value);
+                        xml.append("</").append(prefixChild).append(":").append(localChildName).append(">\n");
+                    } else {
+                        addCompleteElementInstance(xml, child.name, child.isReference, childCount, elementNamespace, childSchemaElement);
+                    }
                 }
             } else if (isSimpleType) {
                 // Only add text content for simple types with no children

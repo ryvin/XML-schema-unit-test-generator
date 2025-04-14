@@ -11,8 +11,16 @@ public class XmlValueHelper {
     // Generate attribute value based on type or enumeration
     public String getAttributeValue(Element attrElem) {
         List<String> attrEnums = schemaParser.findEnumerationValues(attrElem);
-        if (!attrEnums.isEmpty()) {
-            return attrEnums.get(0);
+        // Filter out empty or whitespace-only values
+        String validEnum = null;
+        for (String v : attrEnums) {
+            if (v != null && !v.trim().isEmpty()) {
+                validEnum = v;
+                break;
+            }
+        }
+        if (validEnum != null) {
+            return validEnum;
         }
         String type = attrElem.getAttribute("type");
         if (type.endsWith("string")) {
@@ -30,8 +38,16 @@ public class XmlValueHelper {
     public String getElementValue(Element schemaElement) {
         if (schemaElement == null) return "SampleValue";
         List<String> enums = schemaParser.findEnumerationValues(schemaElement);
-        if (!enums.isEmpty()) {
-            return enums.get(0);
+        // Filter out empty or whitespace-only values
+        String validEnum = null;
+        for (String v : enums) {
+            if (v != null && !v.trim().isEmpty()) {
+                validEnum = v;
+                break;
+            }
+        }
+        if (validEnum != null) {
+            return validEnum;
         }
         String type = schemaElement.getAttribute("type");
         if (type.endsWith("string")) {
