@@ -5,7 +5,7 @@
   <vh:type>sedan</vh:type>
   </vh:bike>
   <vh:bike>
-  <vh:brand>SampleString262</vh:brand>
+  <vh:brand>SampleString</vh:brand>
   <vh:type>sedan</vh:type>
   </vh:bike>
   <vh:bike>
@@ -13,11 +13,11 @@
   <vh:type>sedan</vh:type>
   </vh:bike>
   <vh:bike>
-  <vh:brand>SampleString834</vh:brand>
+  <vh:brand>SampleString761</vh:brand>
   <vh:type>sedan</vh:type>
   </vh:bike>
   <vh:bike>
-  <vh:brand>SampleString931</vh:brand>
+  <vh:brand>SampleString</vh:brand>
   <vh:type>sedan</vh:type>
   </vh:bike>
 </vh:bikes>
