@@ -2,8 +2,8 @@
 <vh:vehicles xmlns:vh="http://example.com/vehicles" xmlns:xs="http://www.w3.org/2001/XMLSchema">
   <vh:bikes>
   <vh:bike>
-  <vh:brand>SampleString554</vh:brand>
-  <vh:type>sedan</vh:type>
+    <vh:brand>SampleString</vh:brand>
+    <vh:type>sedan</vh:type>
   </vh:bike>
   </vh:bikes>
 </vh:vehicles>

@@ -2,22 +2,22 @@
 <vh:vehicles xmlns:vh="http://example.com/vehicles" xmlns:xs="http://www.w3.org/2001/XMLSchema">
   <vh:cars type="sedan">
   <vh:car type="sedan">
-  <vh:make>SampleString798</vh:make>
-  <vh:model>SampleString</vh:model>
-  <vh:year>2025</vh:year>
+    <vh:make>SampleString</vh:make>
+    <vh:model>SampleString</vh:model>
+    <vh:year>2020</vh:year>
   </vh:car>
   </vh:cars>
   <vh:cars type="sedan">
   <vh:car type="sedan">
-  <vh:make>SampleString</vh:make>
-  <vh:model>SampleString555</vh:model>
-  <vh:year>2025</vh:year>
+    <vh:make>SampleString</vh:make>
+    <vh:model>SampleString</vh:model>
+    <vh:year>2020</vh:year>
   </vh:car>
   </vh:cars>
   <vh:bikes>
   <vh:bike>
-  <vh:brand>SampleString</vh:brand>
-  <vh:type>sedan</vh:type>
+    <vh:brand>SampleString</vh:brand>
+    <vh:type>sedan</vh:type>
   </vh:bike>
   </vh:bikes>
 </vh:vehicles>
