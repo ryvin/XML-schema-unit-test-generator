@@ -6,7 +6,15 @@
   </vh:bike>
   <vh:bike>
   <vh:brand>SampleString</vh:brand>
-  <vh:type>mountain</vh:type>
+  <vh:type>road</vh:type>
+  </vh:bike>
+  <vh:bike>
+  <vh:brand>SampleString</vh:brand>
+  <vh:type>hybrid</vh:type>
+  </vh:bike>
+  <vh:bike>
+  <vh:brand>SampleString</vh:brand>
+  <vh:type>hybrid</vh:type>
   </vh:bike>
   <vh:bike>
   <vh:brand>SampleString</vh:brand>
@@ -14,14 +22,6 @@
   </vh:bike>
   <vh:bike>
   <vh:brand>SampleString</vh:brand>
-  <vh:type>mountain</vh:type>
-  </vh:bike>
-  <vh:bike>
-  <vh:brand>SampleString</vh:brand>
-  <vh:type>mountain</vh:type>
-  </vh:bike>
-  <vh:bike>
-  <vh:brand>SampleString</vh:brand>
-  <vh:type>mountain</vh:type>
+  <vh:type>hybrid</vh:type>
   </vh:bike>
 </vh:bikes>
