@@ -49,7 +49,7 @@ public class CardinalityTestGenerator {
             if (minOccurs > 0) {
                 String testCase = "min";
                 String fileName = "test-output/positive/cardinality/" + baseFileName + "_" + testCase + ".xml";
-                String xml = xmlGenerator.generateTestXml(elementName, childElements, childName, minOccurs, isReference, targetNamespace);
+                String xml = xmlGenerator.generateTestXml(elementName, childElements, childName, minOccurs, isReference, targetNamespace, element);
                 generator.writeTestFile(fileName, xml);
                 generator.validateAgainstSchema(fileName, schemaFile, true);
             }
@@ -58,7 +58,7 @@ public class CardinalityTestGenerator {
             if (maxOccurs != Integer.MAX_VALUE) {
                 String testCase = "max";
                 String fileName = "test-output/positive/cardinality/" + baseFileName + "_" + testCase + ".xml";
-                String xml = xmlGenerator.generateTestXml(elementName, childElements, childName, maxOccurs, isReference, targetNamespace);
+                String xml = xmlGenerator.generateTestXml(elementName, childElements, childName, maxOccurs, isReference, targetNamespace, element);
                 generator.writeTestFile(fileName, xml);
                 generator.validateAgainstSchema(fileName, schemaFile, true);
             }
@@ -68,7 +68,7 @@ public class CardinalityTestGenerator {
                 int middle = minOccurs + (maxOccurs - minOccurs) / 2;
                 String testCase = "between";
                 String fileName = "test-output/positive/cardinality/" + baseFileName + "_" + testCase + ".xml";
-                String xml = xmlGenerator.generateTestXml(elementName, childElements, childName, middle, isReference, targetNamespace);
+                String xml = xmlGenerator.generateTestXml(elementName, childElements, childName, middle, isReference, targetNamespace, element);
                 generator.writeTestFile(fileName, xml);
                 generator.validateAgainstSchema(fileName, schemaFile, true);
             }
@@ -79,7 +79,7 @@ public class CardinalityTestGenerator {
             if (minOccurs > 0) {
                 String testCase = "lessThanMin";
                 String fileName = "test-output/negative/cardinality/" + baseFileName + "_" + testCase + ".xml";
-                String xml = xmlGenerator.generateTestXml(elementName, childElements, childName, minOccurs - 1, isReference, targetNamespace);
+                String xml = xmlGenerator.generateTestXml(elementName, childElements, childName, minOccurs - 1, isReference, targetNamespace, element);
                 generator.writeTestFile(fileName, xml);
                 generator.validateAgainstSchema(fileName, schemaFile, false);
             }
@@ -88,7 +88,7 @@ public class CardinalityTestGenerator {
             if (maxOccurs != Integer.MAX_VALUE) {
                 String testCase = "moreThanMax";
                 String fileName = "test-output/negative/cardinality/" + baseFileName + "_" + testCase + ".xml";
-                String xml = xmlGenerator.generateTestXml(elementName, childElements, childName, maxOccurs + 1, isReference, targetNamespace);
+                String xml = xmlGenerator.generateTestXml(elementName, childElements, childName, maxOccurs + 1, isReference, targetNamespace, element);
                 generator.writeTestFile(fileName, xml);
                 generator.validateAgainstSchema(fileName, schemaFile, false);
             }

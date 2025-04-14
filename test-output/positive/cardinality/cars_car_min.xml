@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <vh:cars xmlns:vh="http://example.com/vehicles" xmlns:xs="http://www.w3.org/2001/XMLSchema">
-  <vh:car>
+  <vh:car type="sedan">
+  <vh:make>SampleString</vh:make>
+  <vh:model>SampleString</vh:model>
+  <vh:year>2020</vh:year>
   </vh:car>
 </vh:cars>
