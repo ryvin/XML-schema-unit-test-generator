@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OAI-PMH xmlns="http://www.openarchives.org/OAI/2.0/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.openarchives.org/OAI/2.0/ schemas/vehicles.xsd">
+  <oai:responseDate>
+    2020-01-01T12:00:00
+  </oai:responseDate>
+  <oai:error>
+    SampleValue
+  </oai:error>
+  <oai:Identify>
+    <oai:repositoryName>SampleString</oai:repositoryName>
+    <oai:baseURL>SampleValue</oai:baseURL>
+  <oai:protocolVersion>
+    SampleValue
+  </oai:protocolVersion>
+  <oai:adminEmail>
+    SampleValue
+  </oai:adminEmail>
+  <oai:earliestDatestamp>
+    SampleValue
+  </oai:earliestDatestamp>
+  <oai:deletedRecord>
+    SampleValue
+  </oai:deletedRecord>
+  <oai:granularity>
+    SampleValue
+  </oai:granularity>
+  </oai:Identify>
+  <oai:ListMetadataFormats>
+    SampleValue
+  </oai:ListMetadataFormats>
+  <oai:ListSets>
+    SampleValue
+  </oai:ListSets>
+  <oai:GetRecord>
+    SampleValue
+  </oai:GetRecord>
+  <oai:ListIdentifiers>
+    SampleValue
+  </oai:ListIdentifiers>
+  <oai:ListRecords>
+    SampleValue
+  </oai:ListRecords>
+</OAI-PMH>
