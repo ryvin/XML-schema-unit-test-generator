@@ -42,21 +42,21 @@ public class XmlValueHelper {
      */
     public String getElementValue(Element schemaElement) {
         if (schemaElement == null) {
-            System.out.println("[DEBUG] getElementValue: schemaElement is null, returning SampleValue");
+            XMLSchemaTestGenerator.debug("getElementValue: schemaElement is null, returning SampleValue");
             return "SampleValue";
         }
         
         // First check if this element has enumeration values
         List<String> enums = schemaParser.findEnumerationValues(schemaElement);
-        System.out.println("[DEBUG] getElementValue for element '" + (schemaElement.getAttribute("name")) + "' direct enums: " + enums);
+        XMLSchemaTestGenerator.debug("getElementValue for element '" + (schemaElement.getAttribute("name")) + "' direct enums: " + enums);
         if (enums != null && !enums.isEmpty()) {
             for (String value : enums) {
                 if (value != null && !value.trim().isEmpty()) {
-                    System.out.println("[DEBUG] getElementValue: Returning first non-empty enum value '" + value + "' for element '" + schemaElement.getAttribute("name") + "'");
+                    XMLSchemaTestGenerator.debug("getElementValue: Returning first non-empty enum value '" + value + "' for element '" + schemaElement.getAttribute("name") + "'");
                     return value;
                 }
             }
-            System.out.println("[DEBUG] getElementValue: All enum values were empty for element '" + schemaElement.getAttribute("name") + "'. Returning SampleValue");
+            XMLSchemaTestGenerator.debug("getElementValue: All enum values were empty for element '" + schemaElement.getAttribute("name") + "'. Returning SampleValue");
             return "SampleValue";
         }
 
@@ -78,7 +78,7 @@ public class XmlValueHelper {
                             String childType = el.getAttribute("type");
                             if (childType != null && !childType.isEmpty()) {
                                 type = childType;
-                                System.out.println("[DEBUG] getElementValue resolved type for element '" + childName + "' from parent complexType: " + type);
+                                XMLSchemaTestGenerator.debug("getElementValue resolved type for element '" + childName + "' from parent complexType: " + type);
                                 break;
                             }
                         }
@@ -91,19 +91,19 @@ public class XmlValueHelper {
             Element typeDef = schemaParser.resolveTypeDefinition(typeName);
             if (typeDef != null) {
                 List<String> typeEnums = schemaParser.findEnumerationValues(typeDef);
-                System.out.println("[DEBUG] getElementValue for element '" + (schemaElement.getAttribute("name")) + "' type '" + type + "' enums: " + typeEnums);
+                XMLSchemaTestGenerator.debug("getElementValue for element '" + (schemaElement.getAttribute("name")) + "' type '" + type + "' enums: " + typeEnums);
                 if (typeEnums != null && !typeEnums.isEmpty()) {
                     for (String value : typeEnums) {
                         if (value != null && !value.trim().isEmpty()) {
-                            System.out.println("[DEBUG] getElementValue: Returning first non-empty type enum value '" + value + "' for element '" + schemaElement.getAttribute("name") + "'");
+                            XMLSchemaTestGenerator.debug("getElementValue: Returning first non-empty type enum value '" + value + "' for element '" + schemaElement.getAttribute("name") + "'");
                             return value;
                         }
                     }
-                    System.out.println("[DEBUG] getElementValue: All type enum values were empty for element '" + schemaElement.getAttribute("name") + "'. Returning SampleValue");
+                    XMLSchemaTestGenerator.debug("getElementValue: All type enum values were empty for element '" + schemaElement.getAttribute("name") + "'. Returning SampleValue");
                     return "SampleValue";
                 }
             } else {
-                System.out.println("[DEBUG] No typeDef found for type: " + type);
+                XMLSchemaTestGenerator.debug("No typeDef found for type: " + type);
             }
         }
 
@@ -111,15 +111,15 @@ public class XmlValueHelper {
         Element inlineSimpleType = findChildElement(schemaElement, "simpleType");
         if (inlineSimpleType != null) {
             List<String> inlineEnums = schemaParser.findEnumerationValues(inlineSimpleType);
-            System.out.println("[DEBUG] getElementValue for element '" + (schemaElement.getAttribute("name")) + "' inline simpleType enums: " + inlineEnums);
+            XMLSchemaTestGenerator.debug("getElementValue for element '" + (schemaElement.getAttribute("name")) + "' inline simpleType enums: " + inlineEnums);
             if (inlineEnums != null && !inlineEnums.isEmpty()) {
                 for (String value : inlineEnums) {
                     if (value != null && !value.trim().isEmpty()) {
-                        System.out.println("[DEBUG] getElementValue: Returning first non-empty inline simpleType enum value '" + value + "' for element '" + schemaElement.getAttribute("name") + "'");
+                        XMLSchemaTestGenerator.debug("getElementValue: Returning first non-empty inline simpleType enum value '" + value + "' for element '" + schemaElement.getAttribute("name") + "'");
                         return value;
                     }
                 }
-                System.out.println("[DEBUG] getElementValue: All inline simpleType enum values were empty for element '" + schemaElement.getAttribute("name") + "'. Returning SampleValue");
+                XMLSchemaTestGenerator.debug("getElementValue: All inline simpleType enum values were empty for element '" + schemaElement.getAttribute("name") + "'. Returning SampleValue");
                 return "SampleValue";
             }
         } else {
@@ -136,15 +136,15 @@ public class XmlValueHelper {
                             Element childSimpleType = findChildElement(el, "simpleType");
                             if (childSimpleType != null) {
                                 List<String> childInlineEnums = schemaParser.findEnumerationValues(childSimpleType);
-                                System.out.println("[DEBUG] getElementValue for element '" + childName + "' parent complexType inline simpleType enums: " + childInlineEnums);
+                                XMLSchemaTestGenerator.debug("getElementValue for element '" + childName + "' parent complexType inline simpleType enums: " + childInlineEnums);
                                 if (childInlineEnums != null && !childInlineEnums.isEmpty()) {
                                     for (String value : childInlineEnums) {
                                         if (value != null && !value.trim().isEmpty()) {
-                                            System.out.println("[DEBUG] getElementValue: Returning first non-empty parent complexType inline enum value '" + value + "' for element '" + childName + "'");
+                                            XMLSchemaTestGenerator.debug("getElementValue: Returning first non-empty parent complexType inline enum value '" + value + "' for element '" + childName + "'");
                                             return value;
                                         }
                                     }
-                                    System.out.println("[DEBUG] getElementValue: All parent complexType inline enum values were empty for element '" + childName + "'. Returning SampleValue");
+                                    XMLSchemaTestGenerator.debug("getElementValue: All parent complexType inline enum values were empty for element '" + childName + "'. Returning SampleValue");
                                     return "SampleValue";
                                 }
                             }
@@ -153,15 +153,15 @@ public class XmlValueHelper {
                                 Element restriction = findChildElement(simpleContent, "restriction");
                                 if (restriction != null) {
                                     List<String> restrictionEnums = schemaParser.findEnumerationValues(restriction);
-                                    System.out.println("[DEBUG] getElementValue for element '" + childName + "' parent complexType simpleContent restriction enums: " + restrictionEnums);
+                                    XMLSchemaTestGenerator.debug("getElementValue for element '" + childName + "' parent complexType simpleContent restriction enums: " + restrictionEnums);
                                     if (restrictionEnums != null && !restrictionEnums.isEmpty()) {
                                         for (String value : restrictionEnums) {
                                             if (value != null && !value.trim().isEmpty()) {
-                                                System.out.println("[DEBUG] getElementValue: Returning first non-empty parent complexType restriction enum value '" + value + "' for element '" + childName + "'");
+                                                XMLSchemaTestGenerator.debug("getElementValue: Returning first non-empty parent complexType restriction enum value '" + value + "' for element '" + childName + "'");
                                                 return value;
                                             }
                                         }
-                                        System.out.println("[DEBUG] getElementValue: All parent complexType restriction enum values were empty for element '" + childName + "'. Returning SampleValue");
+                                        XMLSchemaTestGenerator.debug("getElementValue: All parent complexType restriction enum values were empty for element '" + childName + "'. Returning SampleValue");
                                         return "SampleValue";
                                     }
                                 }
@@ -172,15 +172,15 @@ public class XmlValueHelper {
                                 Element typeDef2 = schemaParser.resolveTypeDefinition(typeName2);
                                 if (typeDef2 != null) {
                                     List<String> typeEnums2 = schemaParser.findEnumerationValues(typeDef2);
-                                    System.out.println("[DEBUG] getElementValue for element '" + childName + "' parent complexType type '" + childType + "' enums: " + typeEnums2);
+                                    XMLSchemaTestGenerator.debug("getElementValue for element '" + childName + "' parent complexType type '" + childType + "' enums: " + typeEnums2);
                                     if (typeEnums2 != null && !typeEnums2.isEmpty()) {
                                         for (String value : typeEnums2) {
                                             if (value != null && !value.trim().isEmpty()) {
-                                                System.out.println("[DEBUG] getElementValue: Returning first non-empty parent complexType enum value '" + value + "' for element '" + childName + "'");
+                                                XMLSchemaTestGenerator.debug("getElementValue: Returning first non-empty parent complexType enum value '" + value + "' for element '" + childName + "'");
                                                 return value;
                                             }
                                         }
-                                        System.out.println("[DEBUG] getElementValue: All parent complexType enum values were empty for element '" + childName + "'. Returning SampleValue");
+                                        XMLSchemaTestGenerator.debug("getElementValue: All parent complexType enum values were empty for element '" + childName + "'. Returning SampleValue");
                                         return "SampleValue";
                                     }
                                 }
@@ -193,7 +193,7 @@ public class XmlValueHelper {
         
         // If no enumeration values, generate based on type
         String fallback = generateValueForType(type);
-        System.out.println("[DEBUG] getElementValue fallback for element '" + (schemaElement.getAttribute("name")) + "' type '" + type + "': " + fallback);
+        XMLSchemaTestGenerator.debug("getElementValue fallback for element '" + (schemaElement.getAttribute("name")) + "' type '" + type + "': " + fallback);
         return fallback;
     }
     
@@ -271,7 +271,7 @@ public class XmlValueHelper {
      * Find a child element with the specified local name
      */
     private Element findChildElement(Element parent, String localName) {
-        System.out.println("[DEBUG] XmlValueHelper.findChildElement CALLED for child='" + localName + "' parent='" + (parent != null ? parent.getAttribute("name") : "<null>") + "'");
+        XMLSchemaTestGenerator.debug("XmlValueHelper.findChildElement CALLED for child='" + localName + "' parent='" + (parent != null ? parent.getAttribute("name") : "<null>") + "'");
         if (parent == null) return null;
         NodeList children = parent.getChildNodes();
         for (int i = 0; i < children.getLength(); i++) {

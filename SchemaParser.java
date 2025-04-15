@@ -10,13 +10,8 @@ import java.io.File;
 import java.util.*;
 import javax.xml.XMLConstants;
 import org.w3c.dom.*;
-import java.util.logging.Logger;
-import java.util.logging.Level;
 
 public class SchemaParser {
-    
-    private static final Logger logger = Logger.getLogger(SchemaParser.class.getName());
-    private XMLSchemaTestGenerator generator;
     
     // Map to store all global type definitions (simpleType and complexType) by name
     public static Map<String, Element> typeDefinitions = new HashMap<>();
@@ -32,6 +27,8 @@ public class SchemaParser {
     
     // Map to store substitution groups
     private Map<String, List<Element>> substitutionGroups = new HashMap<>();
+    
+    private XMLSchemaTestGenerator generator;
     
     public SchemaParser(XMLSchemaTestGenerator generator) {
         this.generator = generator;
@@ -73,7 +70,7 @@ public class SchemaParser {
                         // Recursively process includes/imports
                         collectIncludedSchemas(includedDoc, fullPath, processedSchemas, schemaDocuments);
                     } catch (Exception e) {
-                        logger.log(Level.WARNING, "Could not process included schema: {0}", fullPath);
+                        XMLSchemaTestGenerator.log("Could not process included schema: " + fullPath);
                     }
                 }
             }
@@ -105,8 +102,7 @@ public class SchemaParser {
                             for (Map.Entry<String, String> entry : prefixToNamespaceMap.entrySet()) {
                                 if (entry.getValue().equals(namespace)) {
                                     // We found the prefix for this namespace
-                                    logger.log(Level.FINE, "Found prefix {0} for namespace {1}", 
-                                        new Object[]{entry.getKey(), namespace});
+                                    XMLSchemaTestGenerator.debug("Found prefix " + entry.getKey() + " for namespace " + namespace);
                                     break;
                                 }
                             }
@@ -115,7 +111,7 @@ public class SchemaParser {
                         // Recursively process includes/imports
                         collectIncludedSchemas(importedDoc, fullPath, processedSchemas, schemaDocuments);
                     } catch (Exception e) {
-                        logger.log(Level.WARNING, "Could not process imported schema: {0}", fullPath);
+                        XMLSchemaTestGenerator.log("Could not process imported schema: " + fullPath);
                     }
                 }
             }
@@ -135,8 +131,7 @@ public class SchemaParser {
             if (name.startsWith("xmlns:")) {
                 String prefix = name.substring(6); // Extract prefix after "xmlns:"
                 prefixToNamespaceMap.put(prefix, value);
-                logger.log(Level.FINE, "Added namespace prefix mapping: {0} -> {1}", 
-                    new Object[]{prefix, value});
+                XMLSchemaTestGenerator.debug("Added namespace prefix mapping: " + prefix + " -> " + value);
             }
         }
     }
@@ -157,7 +152,7 @@ public class SchemaParser {
                 String name = simpleType.getAttribute("name");
                 if (!name.isEmpty()) {
                     typeDefinitions.put(name, simpleType);
-                    logger.info("[LOG] Registered global simpleType: " + name);
+                    XMLSchemaTestGenerator.log("Registered global simpleType: " + name);
                 }
             }
         }
@@ -169,7 +164,7 @@ public class SchemaParser {
                 String name = complexType.getAttribute("name");
                 if (!name.isEmpty()) {
                     typeDefinitions.put(name, complexType);
-                    logger.info("[LOG] Registered global complexType: " + name);
+                    XMLSchemaTestGenerator.log("Registered global complexType: " + name);
                 }
             }
         }
@@ -202,8 +197,7 @@ public class SchemaParser {
                             substitutionGroups.put(localName, new ArrayList<>());
                         }
                         substitutionGroups.get(localName).add(element);
-                        logger.log(Level.FINE, "Added element {0} to substitution group {1}", 
-                            new Object[]{name, localName});
+                        XMLSchemaTestGenerator.debug("Added element " + name + " to substitution group " + localName);
                     }
                     
                     // Store child elements info
@@ -236,7 +230,7 @@ public class SchemaParser {
                 String name = typeElem.getAttribute("name");
                 if (!name.isEmpty()) {
                     typeDefinitions.put(name, typeElem);
-                    logger.log(Level.FINE, "Added global simpleType definition: {0}", name);
+                    XMLSchemaTestGenerator.debug("Added global simpleType definition: " + name);
                 }
             }
         }
@@ -251,7 +245,7 @@ public class SchemaParser {
                 String name = typeElem.getAttribute("name");
                 if (!name.isEmpty()) {
                     typeDefinitions.put(name, typeElem);
-                    logger.log(Level.FINE, "Added global complexType definition: {0}", name);
+                    XMLSchemaTestGenerator.debug("Added global complexType definition: " + name);
                 }
             }
         }
@@ -270,7 +264,7 @@ public class SchemaParser {
                 String name = groupElem.getAttribute("name");
                 if (!name.isEmpty()) {
                     groupDefinitions.put(name, groupElem);
-                    logger.log(Level.FINE, "Added global group definition: {0}", name);
+                    XMLSchemaTestGenerator.debug("Added global group definition: " + name);
                 }
             }
         }
@@ -302,7 +296,7 @@ public class SchemaParser {
                 
                 // Avoid circular references
                 if (resolvedReferences.contains(elementId)) {
-                    logger.log(Level.FINE, "Detected circular reference for element: {0}", elementId);
+                    XMLSchemaTestGenerator.debug("Detected circular reference for element: " + elementId);
                     return childElements;
                 }
                 
@@ -333,8 +327,7 @@ public class SchemaParser {
                 substitutionInfo.isSimpleType = determineIfSimpleType(substitute);
                 
                 childElements.add(substitutionInfo);
-                logger.log(Level.FINE, "Added substitution element: {0} for {1}", 
-                    new Object[]{substituteName, elementId});
+                XMLSchemaTestGenerator.debug("Added substitution element: " + substituteName + " for " + elementId);
             }
         }
         
@@ -464,7 +457,7 @@ public class SchemaParser {
             
             // We found an <any> element - this permits any element from specified namespace
             // We could generate test data for this, but it's complex and out of scope for this task
-            logger.log(Level.INFO, "Found <any> element in compositor - wildcard elements will not be tested");
+            XMLSchemaTestGenerator.log("Found <any> element in compositor - wildcard elements will not be tested");
         }
     }
     
@@ -571,7 +564,7 @@ public class SchemaParser {
             return generator.getGlobalElementDefinitions().get(localName);
         }
         
-        logger.log(Level.WARNING, "Could not resolve element reference: {0}", ref);
+        XMLSchemaTestGenerator.log("Could not resolve element reference: " + ref);
         return null;
     }
     
@@ -590,7 +583,7 @@ public class SchemaParser {
             return groupDefinitions.get(localName);
         }
         
-        logger.log(Level.WARNING, "Could not resolve group reference: {0}", ref);
+        XMLSchemaTestGenerator.log("Could not resolve group reference: " + ref);
         return null;
     }
     
@@ -620,11 +613,11 @@ public class SchemaParser {
             if (typeDef != null) {
                 if (typeDef.getLocalName().equals("simpleType")) {
                     List<String> fromType = findEnumerationsInSimpleType(typeDef);
-                    System.out.println("[DEBUG] findEnumerationValues: Resolved type '" + typeName + "' for element '" + element.getAttribute("name") + "' and found enums: " + fromType);
+                    XMLSchemaTestGenerator.debug("findEnumerationValues: Resolved type '" + typeName + "' for element '" + element.getAttribute("name") + "' and found enums: " + fromType);
                     values.addAll(fromType);
                 }
             } else {
-                System.out.println("[DEBUG] findEnumerationValues: No typeDef found for type: " + typeAttr + ", element: " + element.getAttribute("name"));
+                XMLSchemaTestGenerator.debug("findEnumerationValues: No typeDef found for type: " + typeAttr + ", element: " + element.getAttribute("name"));
             }
         }
 
@@ -708,7 +701,7 @@ public class SchemaParser {
      * Resolve a type name to its global type definition element
      */
     public Element resolveTypeDefinition(String typeName) {
-        logger.info("[LOG] resolveTypeDefinition: Available typeDefinitions: " + typeDefinitions.keySet());
+        XMLSchemaTestGenerator.debug("resolveTypeDefinition: Available typeDefinitions: " + typeDefinitions.keySet());
         return typeDefinitions.get(typeName);
     }
     
