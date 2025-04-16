@@ -40,10 +40,12 @@ public class SchemaParser {
                     if (!maxOccurs.isEmpty()) ec.setMaxOccurs(maxOccurs.equals("unbounded") ? Integer.MAX_VALUE : Integer.parseInt(maxOccurs));
                     // Try to find enumeration values (inline or by type)
                     List<String> enums = findEnumerationValues(elem);
+                    XMLSchemaTestGenerator.log("[DEBUG] Global element '" + elem.getAttribute("name") + "' type='" + elem.getAttribute("type") + "' enums: " + enums);
                     ec.setEnumerationValues(enums);
                     model.addElementConstraint(ec);
                 }
             }
+            XMLSchemaTestGenerator.log("[DEBUG] Total global elements parsed: " + model.getElements().size());
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -51,13 +53,36 @@ public class SchemaParser {
     }
     
     // Map to store all global type definitions (simpleType and complexType) by name
-    public static Map<String, Element> typeDefinitions = new HashMap<>();
+    public static Map<String, Element> typeDefinitions = new HashMap<>(); // Global type definitions
+
     
     private Set<String> resolvedReferences = new HashSet<>();
     private Map<String, String> prefixToNamespaceMap = new HashMap<>();
     private Map<String, Element> groupDefinitions = new HashMap<>();
     private Map<String, List<Element>> substitutionGroups = new HashMap<>();
     private XMLSchemaTestGenerator generator;
+    // Local cache for enumeration values (for modular ConstraintCrafter usage)
+    private final Map<String, List<String>> enumValueCache = new HashMap<>();
+
+    /**
+     * Find a child element by local name (generator-independent)
+     */
+    private static Element findChildElement(Element parent, String localName) {
+        // Debug child search
+        if (parent != null) {
+            XMLSchemaTestGenerator.log("[DEBUG] Searching for child '" + localName + "' in parent '" + parent.getAttribute("name") + "'");
+        }
+
+        if (parent == null) return null;
+        NodeList children = parent.getChildNodes();
+        for (int i = 0; i < children.getLength(); i++) {
+            Node child = children.item(i);
+            if (child.getNodeType() == Node.ELEMENT_NODE && localName.equals(child.getLocalName())) {
+                return (Element) child;
+            }
+        }
+        return null;
+    }
 
     public SchemaParser(XMLSchemaTestGenerator generator) {
         this.generator = generator;
@@ -269,24 +294,29 @@ public class SchemaParser {
             Element simpleType = (Element) simpleTypes.item(i);
             Node parent = simpleType.getParentNode();
             if (parent != null && (parent.getLocalName().equals("schema") || parent.getNodeName().equals("xs:schema"))) {
-                String name = simpleType.getAttribute("name");
-                if (!name.isEmpty()) {
-                    typeDefinitions.put(name, simpleType);
-                    XMLSchemaTestGenerator.log("Registered global simpleType: " + name);
-                }
+            String name = simpleType.getAttribute("name");
+            if (!name.isEmpty()) {
+                typeDefinitions.put(name, simpleType);
+                XMLSchemaTestGenerator.log("[DEBUG] Registered global simpleType: " + name);
             }
+        }          }
         }
         NodeList complexTypes = schemaDoc.getElementsByTagNameNS(XMLConstants.W3C_XML_SCHEMA_NS_URI, "complexType");
         for (int i = 0; i < complexTypes.getLength(); i++) {
             Element complexType = (Element) complexTypes.item(i);
             Node parent = complexType.getParentNode();
+{{ ... }}
+        NodeList complexTypes = schemaDoc.getElementsByTagNameNS(XMLConstants.W3C_XML_SCHEMA_NS_URI, "complexType");
+        for (int i = 0; i < complexTypes.getLength(); i++) {
+            Element complexType = (Element) complexTypes.item(i);
+            Node parent = complexType.getParentNode();
             if (parent != null && (parent.getLocalName().equals("schema") || parent.getNodeName().equals("xs:schema"))) {
-                String name = complexType.getAttribute("name");
-                if (!name.isEmpty()) {
-                    typeDefinitions.put(name, complexType);
-                    XMLSchemaTestGenerator.log("Registered global complexType: " + name);
-                }
+            String name = complexType.getAttribute("name");
+            if (!name.isEmpty()) {
+                typeDefinitions.put(name, complexType);
+                XMLSchemaTestGenerator.log("[DEBUG] Registered global complexType: " + name);
             }
+        }          }
         }
         // --- END PATCH ---
         
@@ -335,48 +365,26 @@ public class SchemaParser {
         // Index all global group definitions
         indexGlobalGroupDefinitions(schemaDoc);
     }
-    
-    /**
-     * Index all global type definitions for later reference
-     */
-    private void indexGlobalTypeDefinitions(Document schemaDoc) {
-        // Process simpleTypes
-        NodeList simpleTypes = schemaDoc.getElementsByTagNameNS(XMLConstants.W3C_XML_SCHEMA_NS_URI, "simpleType");
-        for (int i = 0; i < simpleTypes.getLength(); i++) {
-            Element typeElem = (Element) simpleTypes.item(i);
-            Node parent = typeElem.getParentNode();
-            if (parent != null &&
-                (parent.getLocalName().equals("schema") || parent.getNodeName().equals("xs:schema"))) {
-                String name = typeElem.getAttribute("name");
-                if (!name.isEmpty()) {
-                    typeDefinitions.put(name, typeElem);
-                    XMLSchemaTestGenerator.debug("Added global simpleType definition: " + name);
-                }
-            }
-        }
-        
-        // Process complexTypes
-        NodeList complexTypes = schemaDoc.getElementsByTagNameNS(XMLConstants.W3C_XML_SCHEMA_NS_URI, "complexType");
-        for (int i = 0; i < complexTypes.getLength(); i++) {
-            Element typeElem = (Element) complexTypes.item(i);
-            Node parent = typeElem.getParentNode();
-            if (parent != null &&
-                (parent.getLocalName().equals("schema") || parent.getNodeName().equals("xs:schema"))) {
-                String name = typeElem.getAttribute("name");
-                if (!name.isEmpty()) {
-                    typeDefinitions.put(name, typeElem);
-                    XMLSchemaTestGenerator.debug("Added global complexType definition: " + name);
-                }
+}
+
+/**
+ * Index all global group definitions for later reference
+ */
+private void indexGlobalGroupDefinitions(Document schemaDoc) {
+    NodeList groups = schemaDoc.getElementsByTagNameNS(XMLConstants.W3C_XML_SCHEMA_NS_URI, "group");
+    for (int i = 0; i < groups.getLength(); i++) {
+        Element groupElem = (Element) groups.item(i);
+        Node parent = groupElem.getParentNode();
+        if (parent != null &&
+            (parent.getLocalName().equals("schema") || parent.getNodeName().equals("xs:schema"))) {
+            String name = groupElem.getAttribute("name");
+            if (!name.isEmpty()) {
+                groupDefinitions.put(name, groupElem);
+                XMLSchemaTestGenerator.debug("Added global group definition: " + name);
             }
         }
     }
-    
-    /**
-     * Index all global group definitions for later reference
-     */
-    private void indexGlobalGroupDefinitions(Document schemaDoc) {
-        NodeList groups = schemaDoc.getElementsByTagNameNS(XMLConstants.W3C_XML_SCHEMA_NS_URI, "group");
-        for (int i = 0; i < groups.getLength(); i++) {
+}
             Element groupElem = (Element) groups.item(i);
             Node parent = groupElem.getParentNode();
             if (parent != null &&
@@ -586,23 +594,23 @@ public class SchemaParser {
      */
     public Element findComplexType(Element element) {
         // First look for inline complexType
-        Element complexType = generator.findChildElement(element, "complexType");
+        Element complexType = findChildElement(element, "complexType");
         if (complexType != null) {
             return complexType;
         }
-        
+
         // If not inline, check if there's a type attribute
         String typeAttr = element.getAttribute("type");
         if (!typeAttr.isEmpty()) {
             // Could be a reference to global complexType
             String typeName = typeAttr.contains(":") ? typeAttr.split(":")[1] : typeAttr;
             Element typeDef = resolveTypeDefinition(typeName);
-            
+
             if (typeDef != null && typeDef.getLocalName().equals("complexType")) {
                 return typeDef;
             }
         }
-        
+
         return null;
     }
     
@@ -611,17 +619,17 @@ public class SchemaParser {
      */
     private boolean determineIfSimpleType(Element element) {
         // 1. Inline <simpleType> child
-        Element simpleType = generator.findChildElement(element, "simpleType");
+        Element simpleType = findChildElement(element, "simpleType");
         if (simpleType != null) {
             return true;
         }
-        
+
         // 2. type attribute refers to simple type
         String typeAttr = element.getAttribute("type");
         if (!typeAttr.isEmpty()) {
             // Accept both "xs:string" and "string" (with or without prefix)
             String typeName = typeAttr.contains(":") ? typeAttr.split(":")[1] : typeAttr;
-            
+
             // Check if it's a built-in XSD simple type
             Set<String> xsdSimpleTypes = new HashSet<>(Arrays.asList(
                 "string", "boolean", "decimal", "float", "double", "duration", "dateTime", "time",
@@ -632,32 +640,32 @@ public class SchemaParser {
                 "long", "int", "short", "byte", "nonNegativeInteger", "unsignedLong",
                 "unsignedInt", "unsignedShort", "unsignedByte", "positiveInteger"
             ));
-            
+
             if (xsdSimpleTypes.contains(typeName)) {
                 return true;
             }
-            
+
             // Check if it's a user-defined simple type
             Element typeDef = resolveTypeDefinition(typeName);
             return (typeDef != null && typeDef.getLocalName().equals("simpleType"));
         }
-        
+
         // 3. Check for simple content
-        Element complexType = generator.findChildElement(element, "complexType");
+        Element complexType = findChildElement(element, "complexType");
         if (complexType != null) {
-            Element simpleContent = generator.findChildElement(complexType, "simpleContent");
+            Element simpleContent = findChildElement(complexType, "simpleContent");
             if (simpleContent != null) {
                 // Complex type with simple content is considered a simple type for our purposes
                 return true;
             }
         }
-        
+
         // 4. No complexType child
         if (complexType == null) {
             // Default to true if no complexType defined
             return true;
         }
-        
+
         return false;
     }
     
@@ -714,14 +722,14 @@ public class SchemaParser {
 public List<String> findEnumerationValues(Element element) {
     // Check cache first
     String elementId = element.getAttribute("name");
-    if (generator.getEnumValueCache().containsKey(elementId)) {
-        return generator.getEnumValueCache().get(elementId);
+    if (enumValueCache.containsKey(elementId)) {
+        return enumValueCache.get(elementId);
     }
             
     List<String> values = new ArrayList<>();
             
     // Check for inline simple type with enumerations
-    Element simpleType = generator.findChildElement(element, "simpleType");
+    Element simpleType = findChildElement(element, "simpleType");
     if (simpleType != null) {
         values.addAll(findEnumerationsInSimpleType(simpleType));
     }
@@ -744,7 +752,7 @@ public List<String> findEnumerationValues(Element element) {
             
     // Cache the results
     if (!elementId.isEmpty()) {
-        generator.getEnumValueCache().put(elementId, values);
+        enumValueCache.put(elementId, values);
     }
     return values;
 }
@@ -787,16 +795,35 @@ public List<String> findEnumerationValuesForType(String typeName) {
             }
         }
     }
-    XMLSchemaTestGenerator.debug("findEnumerationValuesForType: For type '" + typeName + "' found enums: " + values);
+    XMLSchemaTestGenerator.log("[DEBUG] findEnumerationValuesForType: For type '" + typeName + "' found enums: " + values);
     return values;
 }
 
 /**
- * Stub: Find enumeration values in a <simpleType> definition
+ * Extract enumeration values from a <simpleType> definition.
+ * Handles both direct <restriction> children and nested structures.
  */
 private List<String> findEnumerationsInSimpleType(Element simpleType) {
-    // TODO: Implement actual enumeration extraction from simpleType
-    return new ArrayList<>();
+    List<String> values = new ArrayList<>();
+    if (simpleType == null) return values;
+    // Look for <restriction> child
+    NodeList children = simpleType.getChildNodes();
+    for (int i = 0; i < children.getLength(); i++) {
+        Node child = children.item(i);
+        if (child.getNodeType() == Node.ELEMENT_NODE && "restriction".equals(child.getLocalName())) {
+            Element restriction = (Element) child;
+            // Find all <enumeration> children
+            NodeList enums = restriction.getElementsByTagNameNS(XMLConstants.W3C_XML_SCHEMA_NS_URI, "enumeration");
+            for (int j = 0; j < enums.getLength(); j++) {
+                Element enumElem = (Element) enums.item(j);
+                String val = enumElem.getAttribute("value");
+                if (val != null && !val.isEmpty()) {
+                    values.add(val);
+                }
+            }
+        }
+    }
+    return values;
 }
 
 /**

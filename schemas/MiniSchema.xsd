@@ -1,0 +1,304 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">
+    
+    <!-- Simple Types with Enumerations -->
+    <xs:simpleType name="DITPRType">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="DITPR-[0-9]{5}"/>
+        </xs:restriction>
+    </xs:simpleType>
+    
+    <xs:simpleType name="DoDAACType">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="[A-Z][0-9]{5}"/>
+        </xs:restriction>
+    </xs:simpleType>
+    
+    <xs:simpleType name="CAGEType">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="[0-9A-Z]{5}"/>
+        </xs:restriction>
+    </xs:simpleType>
+    
+    <xs:simpleType name="DunsNumberType">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="[0-9]{9}"/>
+        </xs:restriction>
+    </xs:simpleType>
+    
+    <xs:simpleType name="Duns4NumberType">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="[0-9]{9}[0-9]{4}"/>
+        </xs:restriction>
+    </xs:simpleType>
+    
+    <xs:simpleType name="GovernmentUniqueEntityIdentifierType">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="[A-Z0-9]{12}"/>
+        </xs:restriction>
+    </xs:simpleType>
+    
+    <xs:simpleType name="AlternateIdentifierType">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="1"/>
+            <xs:maxLength value="30"/>
+        </xs:restriction>
+    </xs:simpleType>
+    
+    <!-- Document Classification Enumeration -->
+    <xs:simpleType name="ClassificationType">
+        <xs:annotation>
+            <xs:documentation>Security classification of the document</xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:token">
+            <xs:enumeration value="Unclassified"/>
+            <xs:enumeration value="Confidential"/>
+            <xs:enumeration value="Secret"/>
+            <xs:enumeration value="Top Secret"/>
+        </xs:restriction>
+    </xs:simpleType>
+    
+    <!-- Document Status Enumeration -->
+    <xs:simpleType name="DocumentStatusType">
+        <xs:annotation>
+            <xs:documentation>Status of the document</xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="Draft"/>
+            <xs:enumeration value="Final"/>
+            <xs:enumeration value="Revision"/>
+            <xs:enumeration value="Cancelled"/>
+            <xs:enumeration value="Superseded"/>
+        </xs:restriction>
+    </xs:simpleType>
+    
+    <!-- Complex Types -->
+    <xs:complexType name="ProcurementInstrumentHeaderType">
+        <xs:sequence>
+            <xs:element name="Classification" type="ClassificationType"/>
+            <xs:element name="Status" type="DocumentStatusType"/>
+        </xs:sequence>
+    </xs:complexType>
+    
+    <xs:complexType name="ProcurementInstrumentHeaderModificationDetails">
+        <xs:complexContent>
+            <xs:extension base="ProcurementInstrumentHeaderType">
+                <xs:sequence>
+                    <xs:element name="ModificationNumber" type="xs:string"/>
+                </xs:sequence>
+            </xs:extension>
+        </xs:complexContent>
+    </xs:complexType>
+    
+    <xs:complexType name="CDRLType">
+        <xs:sequence>
+            <xs:element name="CDRLNumber" type="xs:string"/>
+        </xs:sequence>
+    </xs:complexType>
+    
+    <xs:complexType name="LineItemDetailType">
+        <xs:sequence>
+            <xs:element name="LineItemNumber" type="xs:string"/>
+        </xs:sequence>
+    </xs:complexType>
+    
+    <!-- Root Element -->
+    <xs:element name="ProcurementDocument">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="OriginatorDetails">
+                    <xs:annotation>
+                        <xs:documentation>Information about the system producing the procurement document.</xs:documentation>
+                    </xs:annotation>
+                    <xs:complexType>
+                        <xs:sequence>
+                            <xs:element name="InternalDocumentNumber" type="xs:string">
+                                <xs:annotation>
+                                    <xs:documentation>The internal system identifier of the document by which it is tracked by the system referenced by the DITPR Number.</xs:documentation>
+                                </xs:annotation>
+                            </xs:element>
+                            <xs:choice>
+                                <xs:element name="DoDSystem">
+                                    <xs:annotation>
+                                        <xs:documentation>Identifies the Department of Defense system or application used to generate the XML document.</xs:documentation>
+                                    </xs:annotation>
+                                    <xs:complexType>
+                                        <xs:sequence>
+                                            <xs:element name="DITPRNumber" type="DITPRType">
+                                                <xs:annotation>
+                                                    <xs:documentation>The DoD Information Technology Portfolio Repository (DITPR) Number assigned to the application or system that generated the XML document.</xs:documentation>
+                                                </xs:annotation>
+                                            </xs:element>
+                                            <xs:element name="SystemAdministratorDoDAAC" type="DoDAACType">
+                                                <xs:annotation>
+                                                    <xs:documentation>The DoDAAC of the entity that administers the application or system that generated the XML document.</xs:documentation>
+                                                </xs:annotation>
+                                            </xs:element>
+                                        </xs:sequence>
+                                    </xs:complexType>
+                                </xs:element>
+                                <xs:element name="NonDoDSystem">
+                                    <xs:annotation>
+                                        <xs:documentation>Identifies the system or application used to generate the XML document when it is not a Department of Defense system or application.</xs:documentation>
+                                    </xs:annotation>
+                                    <xs:complexType>
+                                        <xs:sequence>
+                                            <xs:element name="NonDoDEntityIdentifier">
+                                                <xs:annotation>
+                                                    <xs:documentation>The CAGE, DUNS, Activity Address Code, or other identifier of the organization who administers the application or system.  This may or may not be the same entity that uses the application or system.</xs:documentation>
+                                                </xs:annotation>
+                                                <xs:complexType>
+                                                    <xs:sequence>
+                                                        <xs:element name="ActivityAddressCode" minOccurs="0">
+                                                            <xs:annotation>
+                                                                <xs:documentation>The Activity Address Code (AAC).</xs:documentation>
+                                                            </xs:annotation>
+                                                            <xs:simpleType>
+                                                                <xs:restriction base="xs:string">
+                                                                    <xs:pattern value="([0-9AFGJMNRVWY]){1}([0-9A-Z]){5}"/>
+                                                                    <xs:pattern value="([H]){1}([0-9A-FH-Z]){1}([0-9A-Z]){4}"/>
+                                                                    <xs:pattern value="([S]){1}([0-9A-CE-Z]){1}([0-9A-Z]){4}"/>
+                                                                    <xs:pattern value="([Z]){1}([1-9A-Z]){1}([0-9A-Z]){4}"/>
+                                                                </xs:restriction>
+                                                            </xs:simpleType>
+                                                        </xs:element>
+                                                        <xs:element name="Cage" type="CAGEType" minOccurs="0">
+                                                            <xs:annotation>
+                                                                <xs:documentation>CAGE: Commercial and Government Entity  </xs:documentation>
+                                                            </xs:annotation>
+                                                        </xs:element>
+                                                        <xs:element name="Duns4Number" type="Duns4NumberType" minOccurs="0">
+                                                            <xs:annotation>
+                                                                <xs:documentation>DUNS+4: Data Universal Numbering System identifier with four character suffix.  </xs:documentation>
+                                                            </xs:annotation>
+                                                        </xs:element>
+                                                        <xs:element name="DunsNumber" type="DunsNumberType" minOccurs="0">
+                                                            <xs:annotation>
+                                                                <xs:documentation>DUNS:  Data Universal Numbering System Identifier.  </xs:documentation>
+                                                            </xs:annotation>
+                                                        </xs:element>
+                                                        <xs:element name="GovernmentUniqueEntityIdentifier" type="GovernmentUniqueEntityIdentifierType" minOccurs="0">
+                                                            <xs:annotation>
+                                                                <xs:documentation>Government Unique Entity Identifier.</xs:documentation>
+                                                            </xs:annotation>
+                                                        </xs:element>
+                                                        <xs:element name="AlternateIdentifier" type="AlternateIdentifierType" minOccurs="0">
+                                                            <xs:annotation>
+                                                                <xs:documentation>Use to provide an identifier that isn't provided as a distinct element.</xs:documentation>
+                                                            </xs:annotation>
+                                                        </xs:element>
+                                                    </xs:sequence>
+                                                </xs:complexType>
+                                            </xs:element>
+                                            <xs:element name="SystemName">
+                                                <xs:annotation>
+                                                    <xs:documentation>The name of the application or system.</xs:documentation>
+                                                </xs:annotation>
+                                                <xs:simpleType>
+                                                    <xs:restriction base="xs:string">
+                                                        <xs:minLength value="1"/>
+                                                        <xs:maxLength value="30"/>
+                                                        <xs:whiteSpace value="preserve"/>
+                                                    </xs:restriction>
+                                                </xs:simpleType>
+                                            </xs:element>
+                                            <xs:element name="SystemVersion">
+                                                <xs:annotation>
+                                                    <xs:documentation>The version of the application or system.</xs:documentation>
+                                                </xs:annotation>
+                                                <xs:simpleType>
+                                                    <xs:restriction base="xs:string">
+                                                        <xs:minLength value="1"/>
+                                                        <xs:maxLength value="10"/>
+                                                        <xs:whiteSpace value="preserve"/>
+                                                    </xs:restriction>
+                                                </xs:simpleType>
+                                            </xs:element>
+                                        </xs:sequence>
+                                    </xs:complexType>
+                                </xs:element>
+                            </xs:choice>
+                        </xs:sequence>
+                    </xs:complexType>
+                </xs:element>
+                <xs:choice>
+                    <xs:element name="AwardInstrument" type="AwardInstrumentType">
+                        <xs:annotation>
+                            <xs:documentation>The award instrument.</xs:documentation>
+                        </xs:annotation>
+                    </xs:element>
+                    <xs:element name="AwardModificationInstrument" type="AwardModificationInstrumentType">
+                        <xs:annotation>
+                            <xs:documentation>The award modification instrument or the solicitation amendment.</xs:documentation>
+                        </xs:annotation>
+                    </xs:element>
+                </xs:choice>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+    
+    <!--Level 2:  DocumentLevel-->
+    <xs:complexType name="AwardInstrumentType">
+        <xs:annotation>
+            <xs:documentation>Award Instrument document</xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="ProcurementInstrumentHeader" type="ProcurementInstrumentHeaderType">
+                <xs:annotation>
+                    <xs:documentation>Data common to the entire procurement instrument.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="ContractLineItems" minOccurs="0" maxOccurs="2">
+                <xs:annotation>
+                    <xs:documentation>The line item information of the procurement instrument.</xs:documentation>
+                </xs:annotation>
+                <xs:complexType>
+                    <xs:choice>
+                        <xs:element name="CDRL" type="CDRLType" maxOccurs="unbounded">
+                            <xs:annotation>
+                                <xs:documentation>Information about a Contract Data Requirements List (CDRL).</xs:documentation>
+                            </xs:annotation>
+                        </xs:element>
+                        <xs:element name="LineItems" type="LineItemDetailType" maxOccurs="unbounded">
+                            <xs:annotation>
+                                <xs:documentation>Information about contract line items.</xs:documentation>
+                            </xs:annotation>
+                        </xs:element>
+                    </xs:choice>
+                </xs:complexType>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+    
+    <xs:complexType name="AwardModificationInstrumentType">
+        <xs:annotation>
+            <xs:documentation>Award Modification Instrument or Solicitation Amendment Document.</xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="ProcurementInstrumentHeader" type="ProcurementInstrumentHeaderModificationDetails">
+                <xs:annotation>
+                    <xs:documentation>Data common to the entire procurement instrument.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="ContractLineItems" minOccurs="0" maxOccurs="2">
+                <xs:annotation>
+                    <xs:documentation>The line item information of the procurement instrument.</xs:documentation>
+                </xs:annotation>
+                <xs:complexType>
+                    <xs:choice>
+                        <xs:element name="CDRL" type="CDRLType" maxOccurs="unbounded">
+                            <xs:annotation>
+                                <xs:documentation>Information about a Contract Data Requirements List (CDRL).</xs:documentation>
+                            </xs:annotation>
+                        </xs:element>
+                        <xs:element name="LineItems" type="LineItemDetailType" maxOccurs="unbounded">
+                            <xs:annotation>
+                                <xs:documentation>Information about contract line items.</xs:documentation>
+                            </xs:annotation>
+                        </xs:element>
+                    </xs:choice>
+                </xs:complexType>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+</xs:schema>

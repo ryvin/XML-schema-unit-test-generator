@@ -1,0 +1,313 @@
+positive and negative test cases for the XML Schema validation based on the cardinality and enumeration constraints from the provided schema fragment. Let me analyze the constraints and generate appropriate test cases.
+Positive Test Cases
+
+
+1. Minimum Valid Structure with DoDSystem
+xml<OriginatorDetails>
+    <InternalDocumentNumber>DOC-12345</InternalDocumentNumber>
+    <DoDSystem>
+        <DITPRNumber>DITPR-12345</DITPRNumber>
+        <SystemAdministratorDoDAAC>F12345</SystemAdministratorDoDAAC>
+    </DoDSystem>
+</OriginatorDetails>
+2. Minimum Valid Structure with NonDoDSystem
+xml<OriginatorDetails>
+    <InternalDocumentNumber>DOC-12345</InternalDocumentNumber>
+    <NonDoDSystem>
+        <NonDoDEntityIdentifier>
+            <ActivityAddressCode>A12345</ActivityAddressCode>
+        </NonDoDEntityIdentifier>
+        <SystemName>External System</SystemName>
+        <SystemVersion>1.0</SystemVersion>
+    </NonDoDSystem>
+</OriginatorDetails>
+3. NonDoDSystem with CAGE Identifier Only
+xml<OriginatorDetails>
+    <InternalDocumentNumber>DOC-12345</InternalDocumentNumber>
+    <NonDoDSystem>
+        <NonDoDEntityIdentifier>
+            <Cage>1AB23</Cage>
+        </NonDoDEntityIdentifier>
+        <SystemName>External System</SystemName>
+        <SystemVersion>1.0</SystemVersion>
+    </NonDoDSystem>
+</OriginatorDetails>
+4. NonDoDSystem with DUNS Number Only
+xml<OriginatorDetails>
+    <InternalDocumentNumber>DOC-12345</InternalDocumentNumber>
+    <NonDoDSystem>
+        <NonDoDEntityIdentifier>
+            <DunsNumber>123456789</DunsNumber>
+        </NonDoDEntityIdentifier>
+        <SystemName>External System</SystemName>
+        <SystemVersion>1.0</SystemVersion>
+    </NonDoDSystem>
+</OriginatorDetails>
+5. Valid Activity Address Code Patterns
+xml<OriginatorDetails>
+    <InternalDocumentNumber>DOC-12345</InternalDocumentNumber>
+    <NonDoDSystem>
+        <NonDoDEntityIdentifier>
+            <!-- Valid pattern: ([0-9AFGJMNRVWY]){1}([0-9A-Z]){5} -->
+            <ActivityAddressCode>A12345</ActivityAddressCode>
+        </NonDoDEntityIdentifier>
+        <SystemName>External System</SystemName>
+        <SystemVersion>1.0</SystemVersion>
+    </NonDoDSystem>
+</OriginatorDetails>
+xml<OriginatorDetails>
+    <InternalDocumentNumber>DOC-12345</InternalDocumentNumber>
+    <NonDoDSystem>
+        <NonDoDEntityIdentifier>
+            <!-- Valid pattern: ([H]){1}([0-9A-FH-Z]){1}([0-9A-Z]){4} -->
+            <ActivityAddressCode>HZ1234</ActivityAddressCode>
+        </NonDoDEntityIdentifier>
+        <SystemName>External System</SystemName>
+        <SystemVersion>1.0</SystemVersion>
+    </NonDoDSystem>
+</OriginatorDetails>
+Negative Test Cases
+1. Missing Required InternalDocumentNumber
+xml<OriginatorDetails>
+    <!-- Missing required InternalDocumentNumber -->
+    <DoDSystem>
+        <DITPRNumber>DITPR-12345</DITPRNumber>
+        <SystemAdministratorDoDAAC>F12345</SystemAdministratorDoDAAC>
+    </DoDSystem>
+</OriginatorDetails>
+2. Missing Required DITPRNumber in DoDSystem
+xml<OriginatorDetails>
+    <InternalDocumentNumber>DOC-12345</InternalDocumentNumber>
+    <DoDSystem>
+        <!-- Missing required DITPRNumber -->
+        <SystemAdministratorDoDAAC>F12345</SystemAdministratorDoDAAC>
+    </DoDSystem>
+</OriginatorDetails>
+3. Missing Required SystemName in NonDoDSystem
+xml<OriginatorDetails>
+    <InternalDocumentNumber>DOC-12345</InternalDocumentNumber>
+    <NonDoDSystem>
+        <NonDoDEntityIdentifier>
+            <ActivityAddressCode>A12345</ActivityAddressCode>
+        </NonDoDEntityIdentifier>
+        <!-- Missing required SystemName -->
+        <SystemVersion>1.0</SystemVersion>
+    </NonDoDSystem>
+</OriginatorDetails>
+4. Invalid ActivityAddressCode Pattern
+xml<OriginatorDetails>
+    <InternalDocumentNumber>DOC-12345</InternalDocumentNumber>
+    <NonDoDSystem>
+        <NonDoDEntityIdentifier>
+            <!-- Invalid pattern: not matching any of the allowed patterns -->
+            <ActivityAddressCode>X12345</ActivityAddressCode>
+        </NonDoDEntityIdentifier>
+        <SystemName>External System</SystemName>
+        <SystemVersion>1.0</SystemVersion>
+    </NonDoDSystem>
+</OriginatorDetails>
+5. System Name Exceeding Max Length
+xml<OriginatorDetails>
+    <InternalDocumentNumber>DOC-12345</InternalDocumentNumber>
+    <NonDoDSystem>
+        <NonDoDEntityIdentifier>
+            <ActivityAddressCode>A12345</ActivityAddressCode>
+        </NonDoDEntityIdentifier>
+        <!-- SystemName has maxLength of 30 -->
+        <SystemName>This System Name Is Too Long And Exceeds The Maximum Allowed Length Of Thirty Characters</SystemName>
+        <SystemVersion>1.0</SystemVersion>
+    </NonDoDSystem>
+</OriginatorDetails>
+6. Multiple Choice Options (both DoDSystem and NonDoDSystem)
+xml<OriginatorDetails>
+    <InternalDocumentNumber>DOC-12345</InternalDocumentNumber>
+    <DoDSystem>
+        <DITPRNumber>DITPR-12345</DITPRNumber>
+        <SystemAdministratorDoDAAC>F12345</SystemAdministratorDoDAAC>
+    </DoDSystem>
+    <!-- Invalid: Cannot have both DoDSystem and NonDoDSystem (xs:choice) -->
+    <NonDoDSystem>
+        <NonDoDEntityIdentifier>
+            <ActivityAddressCode>A12345</ActivityAddressCode>
+        </NonDoDEntityIdentifier>
+        <SystemName>External System</SystemName>
+        <SystemVersion>1.0</SystemVersion>
+    </NonDoDSystem>
+</OriginatorDetails>
+7. Empty NonDoDEntityIdentifier
+xml<OriginatorDetails>
+    <InternalDocumentNumber>DOC-12345</InternalDocumentNumber>
+    <NonDoDSystem>
+        <NonDoDEntityIdentifier>
+            <!-- Invalid: At least one identifier must be provided -->
+        </NonDoDEntityIdentifier>
+        <SystemName>External System</SystemName>
+        <SystemVersion>1.0</SystemVersion>
+    </NonDoDSystem>
+</OriginatorDetails>
+8. System Version Exceeding Max Length
+xml<OriginatorDetails>
+    <InternalDocumentNumber>DOC-12345</InternalDocumentNumber>
+    <NonDoDSystem>
+        <NonDoDEntityIdentifier>
+            <ActivityAddressCode>A12345</ActivityAddressCode>
+        </NonDoDEntityIdentifier>
+        <SystemName>External System</SystemName>
+        <!-- SystemVersion has maxLength of 10 -->
+        <SystemVersion>Version 123.456.789-alpha</SystemVersion>
+    </NonDoDSystem>
+</OriginatorDetails>
+Positive Test Cases for Enumeration Types
+1. Valid ClassificationType Values
+xml<ProcurementDocument>
+    <OriginatorDetails>
+        <InternalDocumentNumber>DOC-12345</InternalDocumentNumber>
+        <DoDSystem>
+            <DITPRNumber>DITPR-12345</DITPRNumber>
+            <SystemAdministratorDoDAAC>F12345</SystemAdministratorDoDAAC>
+        </DoDSystem>
+    </OriginatorDetails>
+    <AwardInstrument>
+        <ProcurementInstrumentHeader>
+            <!-- Valid enumeration value for ClassificationType -->
+            <Classification>Unclassified</Classification>
+            <Status>Final</Status>
+        </ProcurementInstrumentHeader>
+    </AwardInstrument>
+</ProcurementDocument>
+xml<ProcurementDocument>
+    <OriginatorDetails>
+        <InternalDocumentNumber>DOC-12345</InternalDocumentNumber>
+        <DoDSystem>
+            <DITPRNumber>DITPR-12345</DITPRNumber>
+            <SystemAdministratorDoDAAC>F12345</SystemAdministratorDoDAAC>
+        </DoDSystem>
+    </OriginatorDetails>
+    <AwardInstrument>
+        <ProcurementInstrumentHeader>
+            <!-- Valid enumeration value for ClassificationType -->
+            <Classification>Secret</Classification>
+            <Status>Final</Status>
+        </ProcurementInstrumentHeader>
+    </AwardInstrument>
+</ProcurementDocument>
+2. Valid DocumentStatusType Values
+xml<ProcurementDocument>
+    <OriginatorDetails>
+        <InternalDocumentNumber>DOC-12345</InternalDocumentNumber>
+        <DoDSystem>
+            <DITPRNumber>DITPR-12345</DITPRNumber>
+            <SystemAdministratorDoDAAC>F12345</SystemAdministratorDoDAAC>
+        </DoDSystem>
+    </OriginatorDetails>
+    <AwardInstrument>
+        <ProcurementInstrumentHeader>
+            <Classification>Unclassified</Classification>
+            <!-- Valid enumeration value for DocumentStatusType -->
+            <Status>Draft</Status>
+        </ProcurementInstrumentHeader>
+    </AwardInstrument>
+</ProcurementDocument>
+xml<ProcurementDocument>
+    <OriginatorDetails>
+        <InternalDocumentNumber>DOC-12345</InternalDocumentNumber>
+        <DoDSystem>
+            <DITPRNumber>DITPR-12345</DITPRNumber>
+            <SystemAdministratorDoDAAC>F12345</SystemAdministratorDoDAAC>
+        </DoDSystem>
+    </OriginatorDetails>
+    <AwardInstrument>
+        <ProcurementInstrumentHeader>
+            <Classification>Confidential</Classification>
+            <!-- Valid enumeration value for DocumentStatusType -->
+            <Status>Superseded</Status>
+        </ProcurementInstrumentHeader>
+    </AwardInstrument>
+</ProcurementDocument>
+Negative Test Cases for Enumeration Types
+1. Invalid ClassificationType Value
+xml<ProcurementDocument>
+    <OriginatorDetails>
+        <InternalDocumentNumber>DOC-12345</InternalDocumentNumber>
+        <DoDSystem>
+            <DITPRNumber>DITPR-12345</DITPRNumber>
+            <SystemAdministratorDoDAAC>F12345</SystemAdministratorDoDAAC>
+        </DoDSystem>
+    </OriginatorDetails>
+    <AwardInstrument>
+        <ProcurementInstrumentHeader>
+            <!-- Invalid enumeration value for ClassificationType -->
+            <Classification>Restricted</Classification>
+            <Status>Final</Status>
+        </ProcurementInstrumentHeader>
+    </AwardInstrument>
+</ProcurementDocument>
+2. Case Sensitive Mismatch in ClassificationType
+xml<ProcurementDocument>
+    <OriginatorDetails>
+        <InternalDocumentNumber>DOC-12345</InternalDocumentNumber>
+        <DoDSystem>
+            <DITPRNumber>DITPR-12345</DITPRNumber>
+            <SystemAdministratorDoDAAC>F12345</SystemAdministratorDoDAAC>
+        </DoDSystem>
+    </OriginatorDetails>
+    <AwardInstrument>
+        <ProcurementInstrumentHeader>
+            <!-- Case sensitive mismatch - should be "Secret" -->
+            <Classification>secret</Classification>
+            <Status>Final</Status>
+        </ProcurementInstrumentHeader>
+    </AwardInstrument>
+</ProcurementDocument>
+3. Invalid DocumentStatusType Value
+xml<ProcurementDocument>
+    <OriginatorDetails>
+        <InternalDocumentNumber>DOC-12345</InternalDocumentNumber>
+        <DoDSystem>
+            <DITPRNumber>DITPR-12345</DITPRNumber>
+            <SystemAdministratorDoDAAC>F12345</SystemAdministratorDoDAAC>
+        </DoDSystem>
+    </OriginatorDetails>
+    <AwardInstrument>
+        <ProcurementInstrumentHeader>
+            <Classification>Unclassified</Classification>
+            <!-- Invalid enumeration value for DocumentStatusType -->
+            <Status>InProgress</Status>
+        </ProcurementInstrumentHeader>
+    </AwardInstrument>
+</ProcurementDocument>
+4. Extra Whitespace in Enumeration Value
+xml<ProcurementDocument>
+    <OriginatorDetails>
+        <InternalDocumentNumber>DOC-12345</InternalDocumentNumber>
+        <DoDSystem>
+            <DITPRNumber>DITPR-12345</DITPRNumber>
+            <SystemAdministratorDoDAAC>F12345</SystemAdministratorDoDAAC>
+        </DoDSystem>
+    </OriginatorDetails>
+    <AwardInstrument>
+        <ProcurementInstrumentHeader>
+            <Classification>Unclassified</Classification>
+            <!-- Extra whitespace in enumeration value -->
+            <Status>Final </Status>
+        </ProcurementInstrumentHeader>
+    </AwardInstrument>
+</ProcurementDocument>
+5. Empty Enumeration Value
+xml<ProcurementDocument>
+    <OriginatorDetails>
+        <InternalDocumentNumber>DOC-12345</InternalDocumentNumber>
+        <DoDSystem>
+            <DITPRNumber>DITPR-12345</DITPRNumber>
+            <SystemAdministratorDoDAAC>F12345</SystemAdministratorDoDAAC>
+        </DoDSystem>
+    </OriginatorDetails>
+    <AwardInstrument>
+        <ProcurementInstrumentHeader>
+            <!-- Empty value for enumeration -->
+            <Classification></Classification>
+            <Status>Final</Status>
+        </ProcurementInstrumentHeader>
+    </AwardInstrument>
+</ProcurementDocument>
+These test cases specifically target the enumeration constraints defined in the schema for ClassificationType and DocumentStatusType. The positive tests verify that each valid enumeration value is accepted, while the negative tests verify that invalid values, case mismatches, whitespace issues, and empty values are properly rejected according to the schema validation rules.
