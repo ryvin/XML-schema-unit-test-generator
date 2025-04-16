@@ -7,6 +7,13 @@ import org.w3c.dom.*;
  * Class for parsing XML Schema files and extracting information
  */
 public class SchemaParser {
+    /**
+     * Find child element by local name (delegates to generator)
+     */
+    public Element findChildElement(Element parent, String localName) {
+        return generator.findChildElement(parent, localName);
+    }
+
     
     private XMLSchemaTestGenerator generator;
     // Map to store all global type definitions (simpleType and complexType) by name

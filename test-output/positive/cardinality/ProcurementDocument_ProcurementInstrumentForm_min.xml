@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ProcurementDocument>
+  <SchemaVersionUsed>
+    SampleValue
+  </SchemaVersionUsed>
+  <ProcurementInstrumentForm>
+    SampleValue
+  </ProcurementInstrumentForm>
+  <OriginatorDetails>
+    SampleValue
+  </OriginatorDetails>
+  <AwardInstrument>
+    SampleValue
+  </AwardInstrument>
+  <AwardModificationInstrument>
+    SampleValue
+  </AwardModificationInstrument>
+</ProcurementDocument>
