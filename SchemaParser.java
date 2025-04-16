@@ -335,6 +335,7 @@ private void indexGlobalGroupDefinitions(Document schemaDoc) {
             }
         }
     }
+
     /**
      * Find child elements for a given element, supporting all compositor types
      * and handling nested compositors
@@ -652,47 +653,41 @@ private void indexGlobalGroupDefinitions(Document schemaDoc) {
         return null;
     }
     
-
-/**
- * Find enumeration values for an element or attribute
- */
-public List<String> findEnumerationValues(Element element) {
-    // Check cache first
-    String elementId = element.getAttribute("name");
-    if (enumValueCache.containsKey(elementId)) {
-        return enumValueCache.get(elementId);
-    }
-            
-    List<String> values = new ArrayList<>();
-            
-    // Check for inline simple type with enumerations
-    Element simpleType = findChildElement(element, "simpleType");
-    if (simpleType != null) {
-        values.addAll(findEnumerationsInSimpleType(simpleType));
-    }
-            
-    // If the element is local (not global), and has a type attribute, resolve and extract enumerations from the referenced global <simpleType>
-    String typeAttr = element.getAttribute("type");
-    if (typeAttr != null && !typeAttr.isEmpty()) {
-        String typeName = typeAttr.contains(":") ? typeAttr.split(":")[1] : typeAttr;
-        Element typeDef = resolveTypeDefinition(typeName);
-        if (typeDef != null) {
-            if (typeDef.getLocalName().equals("simpleType")) {
-                List<String> fromType = findEnumerationsInSimpleType(typeDef);
-                XMLSchemaTestGenerator.debug("findEnumerationValues: Resolved type '" + typeName + "' for element '" + element.getAttribute("name") + "' and found enums: " + fromType);
-                values.addAll(fromType);
-            }
-        } else {
-            XMLSchemaTestGenerator.debug("findEnumerationValues: No typeDef found for type: " + typeAttr + ", element: " + element.getAttribute("name"));
+    /**
+     * Finds enumeration values for a given element (inline or by type).
+     */
+    public List<String> findEnumerationValues(Element element) {
+        String elementId = element.getAttribute("name");
+        if (enumValueCache.containsKey(elementId)) {
+            return enumValueCache.get(elementId);
         }
+        List<String> values = new ArrayList<>();
+        // Check for inline simple type with enumerations
+        Element simpleType = findChildElement(element, "simpleType");
+        if (simpleType != null) {
+            values.addAll(findEnumerationsInSimpleType(simpleType));
+        }
+        // If the element has a type attribute, resolve and extract enumerations from the referenced global <simpleType>
+        String typeAttr = element.getAttribute("type");
+        if (typeAttr != null && !typeAttr.isEmpty()) {
+            String typeName = typeAttr.contains(":") ? typeAttr.split(":")[1] : typeAttr;
+            Element typeDef = resolveTypeDefinition(typeName);
+            if (typeDef != null) {
+                if (typeDef.getLocalName().equals("simpleType")) {
+                    List<String> fromType = findEnumerationsInSimpleType(typeDef);
+                    XMLSchemaTestGenerator.debug("findEnumerationValues: Resolved type '" + typeName + "' for element '" + element.getAttribute("name") + "' and found enums: " + fromType);
+                    values.addAll(fromType);
+                }
+            } else {
+                XMLSchemaTestGenerator.debug("findEnumerationValues: No typeDef found for type: " + typeAttr + ", element: " + element.getAttribute("name"));
+            }
+        }
+        // Cache the results
+        if (!elementId.isEmpty()) {
+            enumValueCache.put(elementId, values);
+        }
+        return values;
     }
-            
-    // Cache the results
-    if (!elementId.isEmpty()) {
-        enumValueCache.put(elementId, values);
-    }
-    return values;
-}
 
 /**
  * Find enumeration values for a global type name (simpleType)
