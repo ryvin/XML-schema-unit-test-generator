@@ -7,10 +7,10 @@ import javax.xml.validation.*;
 import org.w3c.dom.*;
 
 /**
- * Generic XML Schema Test Data Generator
+ * ConstraintCrafter - XML Schema Test Data Generator
  * Generates positive and negative test cases for XML schemas based on cardinality and enumeration constraints
  */
-public class XMLSchemaTestGenerator {
+public class ConstraintCrafter {
     
     private static final Random random = new Random();
     private static final Map<String, String> NAMESPACE_MAP = new HashMap<>();
@@ -42,7 +42,7 @@ public class XMLSchemaTestGenerator {
     
     public static void main(String[] args) {
         if (args.length < 1) {
-            System.out.println("Usage: java XMLSchemaTestGenerator <schema-file> [--debug] [--nolog]");
+            System.out.println("Usage: java ConstraintCrafter <schema-file> [--debug] [--nolog]");
             System.exit(1);
         }
         // Parse options
@@ -52,7 +52,7 @@ public class XMLSchemaTestGenerator {
         }
         String schemaFile = args[0];
         try {
-            XMLSchemaTestGenerator generator = new XMLSchemaTestGenerator();
+            ConstraintCrafter generator = new ConstraintCrafter();
             generator.generateTests(schemaFile);
             log("Test data generation completed successfully.");
         } catch (Exception e) {
@@ -61,8 +61,8 @@ public class XMLSchemaTestGenerator {
         }
     }
     
-    // In the XMLSchemaTestGenerator constructor:
-    public XMLSchemaTestGenerator() {
+    // In the ConstraintCrafter constructor:
+    public ConstraintCrafter() {
         schemaParser = new SchemaParser(this);
         xmlGenerator = new TestXmlGenerator(this, schemaParser);
         enumTestGenerator = new EnumerationTestGenerator(this);
@@ -186,14 +186,14 @@ public class XMLSchemaTestGenerator {
      * Find child element by local name
      */
     public Element findChildElement(Element parent, String localName) {
-        debug("[DEBUG] XMLSchemaTestGenerator.findChildElement CALLED for child='" + localName + "' parent='" + (parent != null ? parent.getAttribute("name") : "<null>") + "'");
+        debug("[DEBUG] ConstraintCrafter.findChildElement CALLED for child='" + localName + "' parent='" + (parent != null ? parent.getAttribute("name") : "<null>") + "'");
         if (parent == null) return null;
         // 1. Try direct child (original logic)
         NodeList children = parent.getChildNodes();
         for (int i = 0; i < children.getLength(); i++) {
             Node child = children.item(i);
             if (child.getNodeType() == Node.ELEMENT_NODE && localName.equals(child.getLocalName())) {
-                debug("[DEBUG] XMLSchemaTestGenerator.findChildElement: Found direct child '" + localName + "' in parent '" + parent.getAttribute("name") + "'");
+                debug("[DEBUG] ConstraintCrafter.findChildElement: Found direct child '" + localName + "' in parent '" + parent.getAttribute("name") + "'");
                 return (Element) child;
             }
         }
@@ -202,59 +202,59 @@ public class XMLSchemaTestGenerator {
         if (typeAttr != null && !typeAttr.isEmpty()) {
             String typeName = typeAttr.contains(":") ? typeAttr.split(":")[1] : typeAttr;
             Element typeDef = null;
-            if (this instanceof XMLSchemaTestGenerator) {
+            if (this instanceof ConstraintCrafter) {
                 // Defensive: should always be true
-                typeDef = ((XMLSchemaTestGenerator)this).getTypeDefinition(typeName);
+                typeDef = ((ConstraintCrafter)this).getTypeDefinition(typeName);
             } else {
                 // fallback: try static map
                 typeDef = SchemaParser.typeDefinitions.get(typeName);
             }
-            debug("[DEBUG] XMLSchemaTestGenerator.findChildElement: Resolved type attribute '" + typeAttr + "' to typeDef='" + (typeDef != null ? typeDef.getAttribute("name") : "<null>") + "'");
+            debug("[DEBUG] ConstraintCrafter.findChildElement: Resolved type attribute '" + typeAttr + "' to typeDef='" + (typeDef != null ? typeDef.getAttribute("name") : "<null>") + "'");
             if (typeDef != null) {
                 // --- DEBUG: Print before searching for actual child ---
-                debug("[DEBUG] XMLSchemaTestGenerator.findChildElement: Searching resolved complexType '" + typeDef.getAttribute("name") + "' for child '" + localName + "'");
+                debug("[DEBUG] ConstraintCrafter.findChildElement: Searching resolved complexType '" + typeDef.getAttribute("name") + "' for child '" + localName + "'");
                 // Search <sequence> for child (namespace-aware)
                 NodeList seqs = typeDef.getElementsByTagNameNS(XMLConstants.W3C_XML_SCHEMA_NS_URI, "sequence");
-                debug("[DEBUG] XMLSchemaTestGenerator.findChildElement:   <sequence> has " + seqs.getLength() + " sequences");
+                debug("[DEBUG] ConstraintCrafter.findChildElement:   <sequence> has " + seqs.getLength() + " sequences");
                 for (int s = 0; s < seqs.getLength(); s++) {
                     Element seq = (Element) seqs.item(s);
                     NodeList seqChildren = seq.getElementsByTagNameNS(XMLConstants.W3C_XML_SCHEMA_NS_URI, "element");
-                    debug("[DEBUG] XMLSchemaTestGenerator.findChildElement:   <sequence> has " + seqChildren.getLength() + " <element> children");
+                    debug("[DEBUG] ConstraintCrafter.findChildElement:   <sequence> has " + seqChildren.getLength() + " <element> children");
                     for (int j = 0; j < seqChildren.getLength(); j++) {
                         Element el = (Element) seqChildren.item(j);
                         String name = el.getAttribute("name");
                         String ref = el.getAttribute("ref");
-                        debug("[DEBUG] XMLSchemaTestGenerator.findChildElement:     candidate <element> name='" + name + "', ref='" + ref + "'");
+                        debug("[DEBUG] ConstraintCrafter.findChildElement:     candidate <element> name='" + name + "', ref='" + ref + "'");
                         if ((!name.isEmpty() && name.equals(localName)) || (!ref.isEmpty() && (ref.equals(localName) || ref.endsWith(":" + localName)))) {
-                            debug("[DEBUG] XMLSchemaTestGenerator.findChildElement: MATCHED in <sequence>: '" + name + "' or ref='" + ref + "'");
+                            debug("[DEBUG] ConstraintCrafter.findChildElement: MATCHED in <sequence>: '" + name + "' or ref='" + ref + "'");
                             return el;
                         }
                     }
                 }
                 // Search direct children of complexType (namespace-aware)
                 NodeList directChildren = typeDef.getElementsByTagNameNS(XMLConstants.W3C_XML_SCHEMA_NS_URI, "element");
-                debug("[DEBUG] XMLSchemaTestGenerator.findChildElement:   complexType has " + directChildren.getLength() + " direct <element> children");
+                debug("[DEBUG] ConstraintCrafter.findChildElement:   complexType has " + directChildren.getLength() + " direct <element> children");
                 for (int j = 0; j < directChildren.getLength(); j++) {
                     Element el = (Element) directChildren.item(j);
                     String name = el.getAttribute("name");
                     String ref = el.getAttribute("ref");
-                    debug("[DEBUG] XMLSchemaTestGenerator.findChildElement:     direct candidate <element> name='" + name + "', ref='" + ref + "'");
+                    debug("[DEBUG] ConstraintCrafter.findChildElement:     direct candidate <element> name='" + name + "', ref='" + ref + "'");
                     if ((!name.isEmpty() && name.equals(localName)) || (!ref.isEmpty() && (ref.equals(localName) || ref.endsWith(":" + localName)))) {
-                        debug("[DEBUG] XMLSchemaTestGenerator.findChildElement: MATCHED in <complexType> direct: '" + name + "' or ref='" + ref + "'");
+                        debug("[DEBUG] ConstraintCrafter.findChildElement: MATCHED in <complexType> direct: '" + name + "' or ref='" + ref + "'");
                         return el;
                     }
                 }
             }
         }
         // 3. Fallback: try global element definitions (if available)
-        if (this instanceof XMLSchemaTestGenerator) {
-            Element global = ((XMLSchemaTestGenerator)this).getGlobalElementDefinitions().get(localName);
+        if (this instanceof ConstraintCrafter) {
+            Element global = ((ConstraintCrafter)this).getGlobalElementDefinitions().get(localName);
             if (global != null) {
-                debug("[DEBUG] XMLSchemaTestGenerator.findChildElement: Fallback to global element definition for '" + localName + "'");
+                debug("[DEBUG] ConstraintCrafter.findChildElement: Fallback to global element definition for '" + localName + "'");
                 return global;
             }
         }
-        debug("[DEBUG] XMLSchemaTestGenerator.findChildElement: NO MATCH for child '" + localName + "' in parent '" + (parent.getAttribute("name")) + "'");
+        debug("[DEBUG] ConstraintCrafter.findChildElement: NO MATCH for child '" + localName + "' in parent '" + (parent.getAttribute("name")) + "'");
         return null;
     }
     
@@ -332,10 +332,10 @@ public class XMLSchemaTestGenerator {
         // Try to retrieve from SchemaParser's static map, or from an internal map if available
         // (Assume SchemaParser.typeDefinitions is public static or provide a getter)
         if (SchemaParser.typeDefinitions != null && SchemaParser.typeDefinitions.containsKey(typeName)) {
-            debug("[DEBUG] XMLSchemaTestGenerator.getTypeDefinition: Found typeDef for '" + typeName + "'");
+            debug("[DEBUG] ConstraintCrafter.getTypeDefinition: Found typeDef for '" + typeName + "'");
             return SchemaParser.typeDefinitions.get(typeName);
         }
-        debug("[DEBUG] XMLSchemaTestGenerator.getTypeDefinition: No typeDef found for '" + typeName + "'");
+        debug("[DEBUG] ConstraintCrafter.getTypeDefinition: No typeDef found for '" + typeName + "'");
         return null;
     }
 }

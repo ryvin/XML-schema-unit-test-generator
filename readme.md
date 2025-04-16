@@ -35,7 +35,7 @@ The test generator uses a modular architecture for better maintainability:
 
 | File | Description |
 |------|-------------|
-| `XMLSchemaTestGenerator.java` | Main class orchestrating the test generation process |
+| `ConstraintCrafter.java` | Main class orchestrating the test generation process |
 | `ElementInfo.java` | Data class for storing element information |
 | `SchemaParser.java` | Handles XML schema parsing and element extraction |
 | `TestXmlGenerator.java` | Generates XML test files based on schema constraints |
@@ -53,10 +53,10 @@ The test generator uses a modular architecture for better maintainability:
 
 ## Usage
 
-Run the generator with your XSD file as an argument:
+Run the generator with your XSD file and specify an output directory:
 
 ```
-java XMLSchemaTestGenerator your-schema.xsd
+java ConstraintCrafter your-schema.xsd test-output
 ```
 
 ### Output Structure
@@ -160,7 +160,7 @@ You can extend the code to support additional XML Schema constraints by:
 
 1. Creating new generator classes for specific constraint types
 2. Updating the SchemaParser to detect the new constraints
-3. Modifying the main XMLSchemaTestGenerator to utilize the new generators
+3. Modifying the main ConstraintCrafter to utilize the new generators
 
 ## Limitations
 
@@ -214,7 +214,7 @@ This means Java is not installed or not added to your system PATH. To resolve:
 5. **Retry compiling and running the generator**
    ```
    javac *.java
-   java XMLSchemaTestGenerator your-schema.xsd
+   java ConstraintCrafter your-schema.xsd test-output
    ```
 
 If you still encounter issues, ensure there are no typos in the path and that you opened a new terminal after updating the PATH.
