@@ -12,11 +12,11 @@ import javax.xml.XMLConstants;
  */
 public class TestXmlGenerator {
 
-    private XMLSchemaTestGenerator generator;
+    private ConstraintCrafter generator;
     private SchemaParser schemaParser;
     private XmlValueHelper xmlValueHelper;
     
-    public TestXmlGenerator(XMLSchemaTestGenerator generator, SchemaParser schemaParser) {
+    public TestXmlGenerator(ConstraintCrafter generator, SchemaParser schemaParser) {
         this.generator = generator;
         this.schemaParser = schemaParser;
         this.xmlValueHelper = new XmlValueHelper(schemaParser);
@@ -87,17 +87,17 @@ public class TestXmlGenerator {
 
         // --- DEBUG: Print schemaElement info ---
         if (schemaElement == null) {
-            XMLSchemaTestGenerator.debug("[DEBUG] addCompleteElementInstance: schemaElement is NULL for element '" + localName + "'");
+            ConstraintCrafter.debug("[DEBUG] addCompleteElementInstance: schemaElement is NULL for element '" + localName + "'");
         } else {
-            XMLSchemaTestGenerator.debug("[DEBUG] addCompleteElementInstance: schemaElement for element '" + localName + "' attributes:");
+            ConstraintCrafter.debug("[DEBUG] addCompleteElementInstance: schemaElement for element '" + localName + "' attributes:");
             for (int i = 0; i < schemaElement.getAttributes().getLength(); i++) {
                 org.w3c.dom.Node attr = schemaElement.getAttributes().item(i);
-                XMLSchemaTestGenerator.debug("    [ATTR] " + attr.getNodeName() + " = '" + attr.getNodeValue() + "'");
+                ConstraintCrafter.debug("    [ATTR] " + attr.getNodeName() + " = '" + attr.getNodeValue() + "'");
             }
             // Print tag name and first 200 chars of outer XML for reference
             String tagName = schemaElement.getTagName();
             String xmlSnippet = schemaElementToString(schemaElement, 200);
-            XMLSchemaTestGenerator.debug("    [TAG] " + tagName + " | [XML SNIPPET] " + xmlSnippet);
+            ConstraintCrafter.debug("    [TAG] " + tagName + " | [XML SNIPPET] " + xmlSnippet);
         }
         
         // Get namespace URI for this element
@@ -128,9 +128,9 @@ public class TestXmlGenerator {
                 addChildElements(xml, children, effectiveSchemaElement, elementNamespace, prefix);
             } else {
                 // Always generate a valid value (including for enumerations)
-                XMLSchemaTestGenerator.debug("[DEBUG] addCompleteElementInstance for element '" + localName + "' type: '" + (effectiveSchemaElement != null ? effectiveSchemaElement.getAttribute("type") : "null") + "");
+                ConstraintCrafter.debug("[DEBUG] addCompleteElementInstance for element '" + localName + "' type: '" + (effectiveSchemaElement != null ? effectiveSchemaElement.getAttribute("type") : "null") + "");
                 String value = xmlValueHelper.getElementValue(effectiveSchemaElement);
-                XMLSchemaTestGenerator.debug("[DEBUG] addCompleteElementInstance value for '" + localName + "': " + value);
+                ConstraintCrafter.debug("[DEBUG] addCompleteElementInstance value for '" + localName + "': " + value);
                 if (value != null && !value.trim().isEmpty()) {
                     xml.append("    ").append(value).append("\n");
                 }
@@ -303,7 +303,7 @@ public class TestXmlGenerator {
             Element childSchemaElement = schemaParser.findChildElement(parentElement, child.name);
             // --- DEBUG: Print parent and child info, and whether schema element is found ---
             String parentName = (parentElement != null && parentElement.hasAttribute("name")) ? parentElement.getAttribute("name") : "<null>";
-            XMLSchemaTestGenerator.debug("[DEBUG] addChildElements: parent='" + parentName + "', child='" + child.name + "', schemaElement=" + (childSchemaElement == null ? "NULL" : "FOUND"));
+            ConstraintCrafter.debug("[DEBUG] addChildElements: parent='" + parentName + "', child='" + child.name + "', schemaElement=" + (childSchemaElement == null ? "NULL" : "FOUND"));
             
             // Get child local name
             String childLocalName = child.name;
@@ -345,48 +345,48 @@ public class TestXmlGenerator {
             String typeName = typeAttr.contains(":") ? typeAttr.substring(typeAttr.indexOf(":") + 1) : typeAttr;
             if (schemaParser != null) {
                 typeComplexType = schemaParser.resolveTypeDefinition(typeName);
-                XMLSchemaTestGenerator.debug("[DEBUG] findChildElement: parent='" + (parentElement.getAttribute("name")) + "', typeAttr='" + typeAttr + "', resolved typeName='" + typeName + "', found complexType=" + (typeComplexType != null));
+                ConstraintCrafter.debug("[DEBUG] findChildElement: parent='" + (parentElement.getAttribute("name")) + "', typeAttr='" + typeAttr + "', resolved typeName='" + typeName + "', found complexType=" + (typeComplexType != null));
             }
         }
         if (typeComplexType == null) {
             typeComplexType = SchemaParser.findChildElement(parentElement, "complexType");
-            XMLSchemaTestGenerator.debug("[DEBUG] findChildElement: parent='" + (parentElement.getAttribute("name")) + "', inline complexType found=" + (typeComplexType != null));
+            ConstraintCrafter.debug("[DEBUG] findChildElement: parent='" + (parentElement.getAttribute("name")) + "', inline complexType found=" + (typeComplexType != null));
         }
         if (typeComplexType != null) {
             Element sequence = SchemaParser.findChildElement(typeComplexType, "sequence");
             if (sequence != null) {
                 org.w3c.dom.NodeList elements = sequence.getElementsByTagName("element");
-                XMLSchemaTestGenerator.debug("[DEBUG] findChildElement: Searching <sequence> for child='" + childName + "'. Found " + elements.getLength() + " elements.");
+                ConstraintCrafter.debug("[DEBUG] findChildElement: Searching <sequence> for child='" + childName + "'. Found " + elements.getLength() + " elements.");
                 for (int i = 0; i < elements.getLength(); i++) {
                     Element el = (Element) elements.item(i);
                     String name = el.getAttribute("name");
                     String ref = el.getAttribute("ref");
-                    XMLSchemaTestGenerator.debug("[DEBUG] findChildElement:   sequence child candidate name='" + name + "', ref='" + ref + "'");
+                    ConstraintCrafter.debug("[DEBUG] findChildElement:   sequence child candidate name='" + name + "', ref='" + ref + "'");
                     if ((!name.isEmpty() && name.equals(localChildName)) ||
                         (!ref.isEmpty() && (ref.equals(childName) || ref.endsWith(":" + localChildName)))) {
-                        XMLSchemaTestGenerator.debug("[DEBUG] findChildElement:   MATCHED sequence child: '" + name + "' or ref='" + ref + "'");
-                        XMLSchemaTestGenerator.debug("[DEBUG] findChildElement: EXIT MATCH parent='" + (parentElement.getAttribute("name")) + "', child='" + childName + "', matched in <sequence>");
+                        ConstraintCrafter.debug("[DEBUG] findChildElement:   MATCHED sequence child: '" + name + "' or ref='" + ref + "'");
+                        ConstraintCrafter.debug("[DEBUG] findChildElement: EXIT MATCH parent='" + (parentElement.getAttribute("name")) + "', child='" + childName + "', matched in <sequence>");
                         return el;
                     }
                 }
             }
             org.w3c.dom.NodeList directElements = typeComplexType.getElementsByTagName("element");
-            XMLSchemaTestGenerator.debug("[DEBUG] findChildElement: Searching <complexType> direct children for child='" + childName + "'. Found " + directElements.getLength() + " elements.");
+            ConstraintCrafter.debug("[DEBUG] findChildElement: Searching <complexType> direct children for child='" + childName + "'. Found " + directElements.getLength() + " elements.");
             for (int i = 0; i < directElements.getLength(); i++) {
                 Element el = (Element) directElements.item(i);
                 String name = el.getAttribute("name");
                 String ref = el.getAttribute("ref");
-                XMLSchemaTestGenerator.debug("[DEBUG] findChildElement:   direct child candidate name='" + name + "', ref='" + ref + "'");
+                ConstraintCrafter.debug("[DEBUG] findChildElement:   direct child candidate name='" + name + "', ref='" + ref + "'");
                 if ((!name.isEmpty() && name.equals(localChildName)) ||
                     (!ref.isEmpty() && (ref.equals(childName) || ref.endsWith(":" + localChildName)))) {
-                    XMLSchemaTestGenerator.debug("[DEBUG] findChildElement:   MATCHED direct child: '" + name + "' or ref='" + ref + "'");
-                    XMLSchemaTestGenerator.debug("[DEBUG] findChildElement: EXIT MATCH parent='" + (parentElement.getAttribute("name")) + "', child='" + childName + "', matched in <complexType> direct children");
+                    ConstraintCrafter.debug("[DEBUG] findChildElement:   MATCHED direct child: '" + name + "' or ref='" + ref + "'");
+                    ConstraintCrafter.debug("[DEBUG] findChildElement: EXIT MATCH parent='" + (parentElement.getAttribute("name")) + "', child='" + childName + "', matched in <complexType> direct children");
                     return el;
                 }
             }
         }
         org.w3c.dom.NodeList children = parentElement.getChildNodes();
-        XMLSchemaTestGenerator.debug("[DEBUG] findChildElement: Searching parent direct children for child='" + childName + "'.");
+        ConstraintCrafter.debug("[DEBUG] findChildElement: Searching parent direct children for child='" + childName + "'.");
         for (int i = 0; i < children.getLength(); i++) {
             org.w3c.dom.Node child = children.item(i);
             if (child.getNodeType() == org.w3c.dom.Node.ELEMENT_NODE) {
@@ -394,18 +394,18 @@ public class TestXmlGenerator {
                 if ("element".equals(el.getLocalName())) {
                     String name = el.getAttribute("name");
                     String ref = el.getAttribute("ref");
-                    XMLSchemaTestGenerator.debug("[DEBUG] findChildElement:   parent direct child candidate name='" + name + "', ref='" + ref + "'");
+                    ConstraintCrafter.debug("[DEBUG] findChildElement:   parent direct child candidate name='" + name + "', ref='" + ref + "'");
                     if ((!name.isEmpty() && name.equals(localChildName)) ||
                         (!ref.isEmpty() && (ref.equals(childName) || ref.endsWith(":" + localChildName)))) {
-                        XMLSchemaTestGenerator.debug("[DEBUG] findChildElement:   MATCHED parent direct child: '" + name + "' or ref='" + ref + "'");
-                        XMLSchemaTestGenerator.debug("[DEBUG] findChildElement: EXIT MATCH parent='" + (parentElement.getAttribute("name")) + "', child='" + childName + "', matched in parent direct children");
+                        ConstraintCrafter.debug("[DEBUG] findChildElement:   MATCHED parent direct child: '" + name + "' or ref='" + ref + "'");
+                        ConstraintCrafter.debug("[DEBUG] findChildElement: EXIT MATCH parent='" + (parentElement.getAttribute("name")) + "', child='" + childName + "', matched in parent direct children");
                         return el;
                     }
                 }
             }
         }
-        XMLSchemaTestGenerator.debug("[DEBUG] findChildElement: NO MATCH parent='" + (parentElement.getAttribute("name")) + "', child='" + childName + "', returning null or global fallback");
-        XMLSchemaTestGenerator.debug("[DEBUG] findChildElement: EXIT NO MATCH parent='" + (parentElement.getAttribute("name")) + "', child='" + childName + "'");
+        ConstraintCrafter.debug("[DEBUG] findChildElement: NO MATCH parent='" + (parentElement.getAttribute("name")) + "', child='" + childName + "', returning null or global fallback");
+        ConstraintCrafter.debug("[DEBUG] findChildElement: EXIT NO MATCH parent='" + (parentElement.getAttribute("name")) + "', child='" + childName + "'");
         return generator.getGlobalElementDefinitions().get(localChildName);
     }
     

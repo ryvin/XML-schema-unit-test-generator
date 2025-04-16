@@ -13,11 +13,11 @@ import javax.xml.XMLConstants;
  */
 public class TestXmlStructureHelper {
     
-    private XMLSchemaTestGenerator generator;
+    private ConstraintCrafter generator;
     private SchemaParser schemaParser;
     private XmlValueHelper xmlValueHelper;
     
-    public TestXmlStructureHelper(XMLSchemaTestGenerator generator, SchemaParser schemaParser, XmlValueHelper xmlValueHelper) {
+    public TestXmlStructureHelper(ConstraintCrafter generator, SchemaParser schemaParser, XmlValueHelper xmlValueHelper) {
         this.generator = generator;
         this.schemaParser = schemaParser;
         this.xmlValueHelper = xmlValueHelper;

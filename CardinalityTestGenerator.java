@@ -6,10 +6,10 @@ import org.w3c.dom.Element;
  */
 public class CardinalityTestGenerator {
     
-    private XMLSchemaTestGenerator generator;
+    private ConstraintCrafter generator;
     private TestXmlGenerator xmlGenerator;
     
-    public CardinalityTestGenerator(XMLSchemaTestGenerator generator) {
+    public CardinalityTestGenerator(ConstraintCrafter generator) {
         this.generator = generator;
         this.xmlGenerator = new TestXmlGenerator(generator, new SchemaParser(generator));
     }

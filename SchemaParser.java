@@ -40,12 +40,12 @@ public class SchemaParser {
                     if (!maxOccurs.isEmpty()) ec.setMaxOccurs(maxOccurs.equals("unbounded") ? Integer.MAX_VALUE : Integer.parseInt(maxOccurs));
                     // Try to find enumeration values (inline or by type)
                     List<String> enums = findEnumerationValues(elem);
-                    XMLSchemaTestGenerator.log("[DEBUG] Global element '" + elem.getAttribute("name") + "' type='" + elem.getAttribute("type") + "' enums: " + enums);
+                    ConstraintCrafter.log("[DEBUG] Global element '" + elem.getAttribute("name") + "' type='" + elem.getAttribute("type") + "' enums: " + enums);
                     ec.setEnumerationValues(enums);
                     model.addElementConstraint(ec);
                 }
             }
-            XMLSchemaTestGenerator.log("[DEBUG] Total global elements parsed: " + model.getElements().size());
+            ConstraintCrafter.log("[DEBUG] Total global elements parsed: " + model.getElements().size());
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -58,7 +58,7 @@ public class SchemaParser {
     
     private Map<String, String> prefixToNamespaceMap = new HashMap<>();
     private Map<String, Element> groupDefinitions = new HashMap<>();
-    private XMLSchemaTestGenerator generator;
+    private ConstraintCrafter generator;
     // Local cache for enumeration values (for modular ConstraintCrafter usage)
     private final Map<String, List<String>> enumValueCache = new HashMap<>();
 
@@ -78,7 +78,7 @@ public class SchemaParser {
         return null;
     }
 
-    public SchemaParser(XMLSchemaTestGenerator generator) {
+    public SchemaParser(ConstraintCrafter generator) {
         this.generator = generator;
     }
 
@@ -209,7 +209,7 @@ public class SchemaParser {
                         // Recursively process includes/imports
                         collectIncludedSchemas(includedDoc, fullPath, processedSchemas, schemaDocuments);
                     } catch (Exception e) {
-                        XMLSchemaTestGenerator.log("Could not process included schema: " + fullPath);
+                        ConstraintCrafter.log("Could not process included schema: " + fullPath);
                     }
                 }
             }
@@ -241,7 +241,7 @@ public class SchemaParser {
                             for (Map.Entry<String, String> entry : prefixToNamespaceMap.entrySet()) {
                                 if (entry.getValue().equals(namespace)) {
                                     // We found the prefix for this namespace
-                                    XMLSchemaTestGenerator.debug("Found prefix " + entry.getKey() + " for namespace " + namespace);
+                                    ConstraintCrafter.debug("Found prefix " + entry.getKey() + " for namespace " + namespace);
                                     break;
                                 }
                             }
@@ -250,7 +250,7 @@ public class SchemaParser {
                         // Recursively process includes/imports
                         collectIncludedSchemas(importedDoc, fullPath, processedSchemas, schemaDocuments);
                     } catch (Exception e) {
-                        XMLSchemaTestGenerator.log("Could not process imported schema: " + fullPath);
+                        ConstraintCrafter.log("Could not process imported schema: " + fullPath);
                     }
                 }
             }
@@ -270,7 +270,7 @@ public class SchemaParser {
             if (name.startsWith("xmlns:")) {
                 String prefix = name.substring(6); // Extract prefix after "xmlns:"
                 prefixToNamespaceMap.put(prefix, value);
-                XMLSchemaTestGenerator.debug("Added namespace prefix mapping: " + prefix + " -> " + value);
+                ConstraintCrafter.debug("Added namespace prefix mapping: " + prefix + " -> " + value);
             }
         }
     }
@@ -291,7 +291,7 @@ public class SchemaParser {
                 String name = simpleType.getAttribute("name");
                 if (!name.isEmpty()) {
                     typeDefinitions.put(name, simpleType);
-                    XMLSchemaTestGenerator.log("[DEBUG] Registered global simpleType: " + name);
+                    ConstraintCrafter.log("[DEBUG] Registered global simpleType: " + name);
                 }
             }
         }
@@ -304,28 +304,29 @@ public class SchemaParser {
             String name = complexType.getAttribute("name");
             if (!name.isEmpty()) {
                 typeDefinitions.put(name, complexType);
-                XMLSchemaTestGenerator.log("[DEBUG] Registered global complexType: " + name);
+                ConstraintCrafter.log("[DEBUG] Registered global complexType: " + name);
             }
         }
     }
 
     // Index all global group definitions
     indexGlobalGroupDefinitions(schemaDoc);
-}
+    }
 
-/**
- * Index all global group definitions for later reference
- */
-private void indexGlobalGroupDefinitions(Document schemaDoc) {
-    NodeList groups = schemaDoc.getElementsByTagNameNS(XMLConstants.W3C_XML_SCHEMA_NS_URI, "group");
-    for (int i = 0; i < groups.getLength(); i++) {
-        Element groupElem = (Element) groups.item(i);
-        Node parent = groupElem.getParentNode();
-        if (parent != null && (parent.getLocalName().equals("schema") || parent.getNodeName().equals("xs:schema"))) {
-            String name = groupElem.getAttribute("name");
-            if (!name.isEmpty()) {
-                groupDefinitions.put(name, groupElem);
-                XMLSchemaTestGenerator.debug("Added global group definition: " + name);
+    /**
+     * Index all global group definitions for later reference
+     */
+    private void indexGlobalGroupDefinitions(Document schemaDoc) {
+        NodeList groups = schemaDoc.getElementsByTagNameNS(XMLConstants.W3C_XML_SCHEMA_NS_URI, "group");
+        for (int i = 0; i < groups.getLength(); i++) {
+            Element groupElem = (Element) groups.item(i);
+            Node parent = groupElem.getParentNode();
+            if (parent != null && (parent.getLocalName().equals("schema") || parent.getNodeName().equals("xs:schema"))) {
+                String name = groupElem.getAttribute("name");
+                if (!name.isEmpty()) {
+                    groupDefinitions.put(name, groupElem);
+                    ConstraintCrafter.debug("Added global group definition: " + name);
+                }
             }
         }
     }
@@ -459,7 +460,7 @@ private void indexGlobalGroupDefinitions(Document schemaDoc) {
             
             // We found an <any> element - this permits any element from specified namespace
             // We could generate test data for this, but it's complex and out of scope for this task
-            XMLSchemaTestGenerator.log("Found <any> element in compositor - wildcard elements will not be tested");
+            ConstraintCrafter.log("Found <any> element in compositor - wildcard elements will not be tested");
         }
     }
     
@@ -564,7 +565,7 @@ private void indexGlobalGroupDefinitions(Document schemaDoc) {
             return generator.getGlobalElementDefinitions().get(localName);
         }
         
-        XMLSchemaTestGenerator.log("Could not resolve element reference: " + ref);
+        ConstraintCrafter.log("Could not resolve element reference: " + ref);
         return null;
     }
     
@@ -583,7 +584,7 @@ private void indexGlobalGroupDefinitions(Document schemaDoc) {
             return groupDefinitions.get(localName);
         }
         
-        XMLSchemaTestGenerator.log("Could not resolve group reference: " + ref);
+        ConstraintCrafter.log("Could not resolve group reference: " + ref);
         return null;
     }
     
@@ -609,11 +610,11 @@ private void indexGlobalGroupDefinitions(Document schemaDoc) {
             if (typeDef != null) {
                 if (typeDef.getLocalName().equals("simpleType")) {
                     List<String> fromType = findEnumerationsInSimpleType(typeDef);
-                    XMLSchemaTestGenerator.debug("findEnumerationValues: Resolved type '" + typeName + "' for element '" + element.getAttribute("name") + "' and found enums: " + fromType);
+                    ConstraintCrafter.debug("findEnumerationValues: Resolved type '" + typeName + "' for element '" + element.getAttribute("name") + "' and found enums: " + fromType);
                     values.addAll(fromType);
                 }
             } else {
-                XMLSchemaTestGenerator.debug("findEnumerationValues: No typeDef found for type: " + typeAttr + ", element: " + element.getAttribute("name"));
+                ConstraintCrafter.debug("findEnumerationValues: No typeDef found for type: " + typeAttr + ", element: " + element.getAttribute("name"));
             }
         }
         // Cache the results
@@ -633,7 +634,7 @@ public List<String> findEnumerationValuesForType(String typeName) {
     String localType = typeName.contains(":") ? typeName.substring(typeName.indexOf(":") + 1) : typeName;
     Element typeDef = typeDefinitions.get(localType);
     if (typeDef == null) {
-        XMLSchemaTestGenerator.debug("findEnumerationValuesForType: No typeDef found for typeName '" + typeName + "' (local: '" + localType + "'). Available: " + typeDefinitions.keySet());
+        ConstraintCrafter.debug("findEnumerationValuesForType: No typeDef found for typeName '" + typeName + "' (local: '" + localType + "'). Available: " + typeDefinitions.keySet());
         return values;
     }
     if (typeDef.getLocalName().equals("simpleType")) {
@@ -654,14 +655,14 @@ public List<String> findEnumerationValuesForType(String typeName) {
                 if (values.isEmpty()) {
                     String base = restriction.getAttribute("base");
                     if (base != null && !base.isEmpty()) {
-                        XMLSchemaTestGenerator.debug("findEnumerationValuesForType: complexType with simpleContent, checking base type '" + base + "'");
+                        ConstraintCrafter.debug("findEnumerationValuesForType: complexType with simpleContent, checking base type '" + base + "'");
                         values.addAll(findEnumerationValuesForType(base));
                     }
                 }
             }
         }
     }
-    XMLSchemaTestGenerator.log("[DEBUG] findEnumerationValuesForType: For type '" + typeName + "' found enums: " + values);
+    ConstraintCrafter.log("[DEBUG] findEnumerationValuesForType: For type '" + typeName + "' found enums: " + values);
     return values;
 }
 
@@ -696,7 +697,7 @@ private List<String> findEnumerationsInSimpleType(Element simpleType) {
  * Resolve a type name to its global type definition element
  */
 public Element resolveTypeDefinition(String typeName) {
-    XMLSchemaTestGenerator.debug("resolveTypeDefinition: Available typeDefinitions: " + typeDefinitions.keySet());
+    ConstraintCrafter.debug("resolveTypeDefinition: Available typeDefinitions: " + typeDefinitions.keySet());
     return typeDefinitions.get(typeName);
 }
 
