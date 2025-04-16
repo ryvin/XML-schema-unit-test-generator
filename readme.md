@@ -1,6 +1,10 @@
-# XML Schema Test Generator
+![ConstraintCrafter Logo](assets/constraintcrafter-logo.png)
 
-A Java-based tool that automatically generates positive and negative test cases for XML Schema validation based on cardinality and enumeration constraints.
+# ConstraintCrafter
+
+**Building better XML tests, one constraint at a time.**
+
+A Java-based tool that automatically generates positive and negative XML test cases for XSD schemas, focusing on enumeration and cardinality constraints. It leverages a modular architecture for extensibility and maintainability.
 
 ## Overview
 

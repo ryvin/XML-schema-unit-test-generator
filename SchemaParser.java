@@ -12,6 +12,43 @@ import javax.xml.XMLConstants;
 import org.w3c.dom.*;
 
 public class SchemaParser {
+    // New no-argument constructor for modular ConstraintCrafter usage
+    public SchemaParser() {
+        this.generator = null;
+    }
+    /**
+     * Parses the given XSD file and builds a ConstraintModel (new modular architecture).
+     * Only collects global elements and their enumeration constraints for now.
+     */
+    public ConstraintModel parseSchema(File xsdFile) {
+        ConstraintModel model = new ConstraintModel();
+        try {
+            javax.xml.parsers.DocumentBuilderFactory factory = javax.xml.parsers.DocumentBuilderFactory.newInstance();
+            factory.setNamespaceAware(true);
+            org.w3c.dom.Document doc = factory.newDocumentBuilder().parse(xsdFile);
+            org.w3c.dom.Element schemaElem = doc.getDocumentElement();
+            org.w3c.dom.NodeList elements = schemaElem.getElementsByTagNameNS(XMLConstants.W3C_XML_SCHEMA_NS_URI, "element");
+            for (int i = 0; i < elements.getLength(); i++) {
+                org.w3c.dom.Element elem = (org.w3c.dom.Element) elements.item(i);
+                if (elem.getParentNode() == schemaElem) { // Only global elements
+                    ElementConstraint ec = new ElementConstraint();
+                    ec.setName(elem.getAttribute("name"));
+                    ec.setType(elem.getAttribute("type"));
+                    String minOccurs = elem.getAttribute("minOccurs");
+                    String maxOccurs = elem.getAttribute("maxOccurs");
+                    if (!minOccurs.isEmpty()) ec.setMinOccurs(Integer.parseInt(minOccurs));
+                    if (!maxOccurs.isEmpty()) ec.setMaxOccurs(maxOccurs.equals("unbounded") ? Integer.MAX_VALUE : Integer.parseInt(maxOccurs));
+                    // Try to find enumeration values (inline or by type)
+                    List<String> enums = findEnumerationValues(elem);
+                    ec.setEnumerationValues(enums);
+                    model.addElementConstraint(ec);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return model;
+    }
     
     // Map to store all global type definitions (simpleType and complexType) by name
     public static Map<String, Element> typeDefinitions = new HashMap<>();
