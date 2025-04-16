@@ -716,59 +716,26 @@ public class SchemaParser {
         if (generator.getEnumValueCache().containsKey(elementId)) {
             return generator.getEnumValueCache().get(elementId);
         }
-        
         List<String> values = new ArrayList<>();
-        
-        // --- New method: Find enumeration values for a type name ---
-    /**
-     * Find enumeration values for a global type name (simpleType)
-     */
-    public List<String> findEnumerationValuesForType(String typeName) {
-        List<String> values = new ArrayList<>();
-        if (typeName == null || typeName.isEmpty()) return values;
-        // Remove namespace prefix if present
-        String localType = typeName.contains(":") ? typeName.substring(typeName.indexOf(":") + 1) : typeName;
-        Element typeDef = typeDefinitions.get(localType);
-        if (typeDef == null) {
-            XMLSchemaTestGenerator.debug("findEnumerationValuesForType: No typeDef found for typeName '" + typeName + "' (local: '" + localType + "'). Available: " + typeDefinitions.keySet());
-            return values;
+        // Check for inline simple type with enumerations
+        Element simpleType = generator.findChildElement(element, "simpleType");
+        if (simpleType != null) {
+            values.addAll(findEnumerationsInSimpleType(simpleType));
         }
-        if (typeDef.getLocalName().equals("simpleType")) {
-            values.addAll(findEnumerationsInSimpleType(typeDef));
-        } else if (typeDef.getLocalName().equals("complexType")) {
-            // Check for simpleContent restriction
-            Element simpleContent = generator.findChildElement(typeDef, "simpleContent");
-            if (simpleContent != null) {
-                Element restriction = generator.findChildElement(simpleContent, "restriction");
-                if (restriction != null) {
-                    // Direct enumerations in restriction
-                    NodeList enums = restriction.getElementsByTagNameNS(XMLConstants.W3C_XML_SCHEMA_NS_URI, "enumeration");
-                    for (int i = 0; i < enums.getLength(); i++) {
-                        Element enumeration = (Element) enums.item(i);
-                        values.add(enumeration.getAttribute("value"));
-                    }
-                    // If no direct enums, try base type
-                    if (values.isEmpty()) {
-                        String base = restriction.getAttribute("base");
-                        if (base != null && !base.isEmpty()) {
-                            XMLSchemaTestGenerator.debug("findEnumerationValuesForType: complexType with simpleContent, checking base type '" + base + "'");
-                            values.addAll(findEnumerationValuesForType(base));
-                        }
-                    }
+        // If the element is local (not global), and has a type attribute, resolve and extract enumerations from the referenced global <simpleType>
+        String typeAttr = element.getAttribute("type");
+        if (typeAttr != null && !typeAttr.isEmpty()) {
+            String typeName = typeAttr.contains(":") ? typeAttr.split(":")[1] : typeAttr;
+            Element typeDef = resolveTypeDefinition(typeName);
+            if (typeDef != null) {
+                if (typeDef.getLocalName().equals("simpleType")) {
+                    List<String> fromType = findEnumerationsInSimpleType(typeDef);
+                    XMLSchemaTestGenerator.debug("findEnumerationValues: Resolved type '" + typeName + "' for element '" + element.getAttribute("name") + "' and found enums: " + fromType);
+                    values.addAll(fromType);
                 }
-        return values;
-    }
-    if (typeDef.getLocalName().equals("simpleType")) {
-        values.addAll(findEnumerationsInSimpleType(typeDef));
-    } else if (typeDef.getLocalName().equals("complexType")) {
-        // Check for simpleContent restriction
-        Element simpleContent = generator.findChildElement(typeDef, "simpleContent");
-        if (simpleContent != null) {
-            Element restriction = generator.findChildElement(simpleContent, "restriction");
-            if (restriction != null) {
-                // Direct enumerations in restriction
-                NodeList enums = restriction.getElementsByTagNameNS(XMLConstants.W3C_XML_SCHEMA_NS_URI, "enumeration");
-                for (int i = 0; i < enums.getLength(); i++) {
+            } else {
+                XMLSchemaTestGenerator.debug("findEnumerationValues: No typeDef found for type: " + typeAttr + ", element: " + element.getAttribute("name"));
+            }
                     Element enumeration = (Element) enums.item(i);
                     values.add(enumeration.getAttribute("value"));
                 }
@@ -803,6 +770,14 @@ public List<String> findEnumerationValues(Element element) {
     Element simpleType = generator.findChildElement(element, "simpleType");
     if (simpleType != null) {
         values.addAll(findEnumerationsInSimpleType(simpleType));
+    }
+
+    /**
+     * Stub: Find enumeration values in a <simpleType> definition
+     */
+    private List<String> findEnumerationsInSimpleType(Element simpleType) {
+        // TODO: Implement actual enumeration extraction from simpleType
+        return new ArrayList<>();
     }
 
     // If the element is local (not global), and has a type attribute, resolve and extract enumerations from the referenced global <simpleType>
