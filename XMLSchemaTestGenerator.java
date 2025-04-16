@@ -70,6 +70,27 @@ public class XMLSchemaTestGenerator {
     }
     
     /**
+     * Loads the schema and populates global elements and parser, but does NOT generate test files.
+     */
+    public void loadSchema(String schemaFile) throws Exception {
+        Document schemaDoc = parseXmlFile(schemaFile);
+        Element rootElement = schemaDoc.getDocumentElement();
+        extractNamespaces(rootElement);
+        String targetNamespace = rootElement.getAttribute("targetNamespace");
+        if (targetNamespace != null && !targetNamespace.isEmpty()) {
+            defaultNamespacePrefix = findPrefixForNamespace(targetNamespace);
+        }
+        Set<String> processedSchemas = new HashSet<>();
+        List<Document> schemaDocuments = new ArrayList<>();
+        schemaDocuments.add(schemaDoc);
+        processedSchemas.add(schemaFile);
+        schemaParser.collectIncludedSchemas(schemaDoc, schemaFile, processedSchemas, schemaDocuments);
+        for (Document doc : schemaDocuments) {
+            schemaParser.findAllGlobalElements(doc);
+        }
+    }
+    
+    /**
      * Generate test cases for the given schema file
      */
     public void generateTests(String schemaFile) throws Exception {

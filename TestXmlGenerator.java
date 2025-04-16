@@ -11,6 +11,42 @@ import javax.xml.XMLConstants;
  * Class for generating XML test files
  */
 public class TestXmlGenerator {
+
+    // TEMPORARY: Demo main method for schema-driven value generation
+    public static void main(String[] args) throws Exception {
+        // Example: Load schema, parse, and print generated value for a sample type/element
+        String schemaFile = "schemas/PDS_Schema_v2.7.0.1.xsd";
+        XMLSchemaTestGenerator generator = new XMLSchemaTestGenerator();
+        SchemaParser schemaParser = new SchemaParser(generator);
+        generator.loadSchema(schemaFile);
+        XmlValueHelper valueHelper = new XmlValueHelper(schemaParser);
+
+        // Get all global element and type names
+        List<String> elementNames = new ArrayList<>(generator.getGlobalElementDefinitions().keySet());
+        List<String> typeNames = new ArrayList<>(SchemaParser.typeDefinitions.keySet());
+        Collections.shuffle(elementNames);
+        Collections.shuffle(typeNames);
+
+        int numElementTests = Math.min(10, elementNames.size());
+        int numTypeTests = Math.min(10, typeNames.size());
+
+        System.out.println("--- Random Demo: Values for 10 Global Types ---");
+        for (int i = 0; i < numTypeTests; i++) {
+            String typeName = typeNames.get(i);
+            String value = valueHelper.generateValueForType(typeName);
+            System.out.println("Type: " + typeName + " => Generated Value: " + value);
+        }
+
+        System.out.println("--- Random Demo: Values for 10 Global Elements ---");
+        for (int i = 0; i < numElementTests; i++) {
+            String elementName = elementNames.get(i);
+            Element element = generator.getGlobalElementDefinitions().get(elementName);
+            String value = valueHelper.getElementValue(element);
+            System.out.println("Element: " + elementName + " => Generated Value: " + value);
+        }
+
+        System.out.println("--- Review the above generated values and validate them against your schema definitions. ---");
+    }
     
     private XMLSchemaTestGenerator generator;
     private SchemaParser schemaParser;

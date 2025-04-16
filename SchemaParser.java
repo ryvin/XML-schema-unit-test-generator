@@ -16,24 +16,107 @@ public class SchemaParser {
     // Map to store all global type definitions (simpleType and complexType) by name
     public static Map<String, Element> typeDefinitions = new HashMap<>();
     
-    // Map to track resolved references to avoid circular reference issues
     private Set<String> resolvedReferences = new HashSet<>();
-    
-    // Map to store namespace prefixes used in schema for resolving QNames
     private Map<String, String> prefixToNamespaceMap = new HashMap<>();
-    
-    // Map to store global group definitions
     private Map<String, Element> groupDefinitions = new HashMap<>();
-    
-    // Map to store substitution groups
     private Map<String, List<Element>> substitutionGroups = new HashMap<>();
-    
     private XMLSchemaTestGenerator generator;
-    
+
     public SchemaParser(XMLSchemaTestGenerator generator) {
         this.generator = generator;
     }
-    
+
+    // --- Restriction extraction helpers for XmlValueHelper ---
+    /**
+     * Finds the pattern facet for a given type name, or null if not present.
+     */
+    public String findPatternForType(String type) {
+        Element restriction = findRestrictionForType(type);
+        if (restriction != null) {
+            NodeList patterns = restriction.getElementsByTagNameNS(XMLConstants.W3C_XML_SCHEMA_NS_URI, "pattern");
+            if (patterns.getLength() > 0) {
+                Element patternElem = (Element) patterns.item(0);
+                return patternElem.getAttribute("value");
+            }
+        }
+        return null;
+    }
+    /**
+     * Finds the minLength facet for a given type name, or null if not present.
+     */
+    public Integer findMinLengthForType(String type) {
+        Element restriction = findRestrictionForType(type);
+        if (restriction != null) {
+            NodeList minLengths = restriction.getElementsByTagNameNS(XMLConstants.W3C_XML_SCHEMA_NS_URI, "minLength");
+            if (minLengths.getLength() > 0) {
+                Element minLenElem = (Element) minLengths.item(0);
+                try { return Integer.parseInt(minLenElem.getAttribute("value")); } catch (Exception e) { return null; }
+            }
+        }
+        return null;
+    }
+    /**
+     * Finds the maxLength facet for a given type name, or null if not present.
+     */
+    public Integer findMaxLengthForType(String type) {
+        Element restriction = findRestrictionForType(type);
+        if (restriction != null) {
+            NodeList maxLengths = restriction.getElementsByTagNameNS(XMLConstants.W3C_XML_SCHEMA_NS_URI, "maxLength");
+            if (maxLengths.getLength() > 0) {
+                Element maxLenElem = (Element) maxLengths.item(0);
+                try { return Integer.parseInt(maxLenElem.getAttribute("value")); } catch (Exception e) { return null; }
+            }
+        }
+        return null;
+    }
+    /**
+     * Finds the minInclusive facet for a given type name, or null if not present.
+     */
+    public String findMinInclusiveForType(String type) {
+        Element restriction = findRestrictionForType(type);
+        if (restriction != null) {
+            NodeList minInc = restriction.getElementsByTagNameNS(XMLConstants.W3C_XML_SCHEMA_NS_URI, "minInclusive");
+            if (minInc.getLength() > 0) {
+                Element minElem = (Element) minInc.item(0);
+                return minElem.getAttribute("value");
+            }
+        }
+        return null;
+    }
+    /**
+     * Finds the maxInclusive facet for a given type name, or null if not present.
+     */
+    public String findMaxInclusiveForType(String type) {
+        Element restriction = findRestrictionForType(type);
+        if (restriction != null) {
+            NodeList maxInc = restriction.getElementsByTagNameNS(XMLConstants.W3C_XML_SCHEMA_NS_URI, "maxInclusive");
+            if (maxInc.getLength() > 0) {
+                Element maxElem = (Element) maxInc.item(0);
+                return maxElem.getAttribute("value");
+            }
+        }
+        return null;
+    }
+    /**
+     * Helper: find the <restriction> element for a type name
+     */
+    private Element findRestrictionForType(String type) {
+        if (type == null || type.isEmpty()) return null;
+        String typeName = type.contains(":") ? type.split(":")[1] : type;
+        Element typeDef = resolveTypeDefinition(typeName);
+        if (typeDef != null && typeDef.getLocalName().equals("simpleType")) {
+            // Look for <restriction> child
+            NodeList children = typeDef.getChildNodes();
+            for (int i = 0; i < children.getLength(); i++) {
+                Node child = children.item(i);
+                if (child.getNodeType() == Node.ELEMENT_NODE && "restriction".equals(child.getLocalName())) {
+                    return (Element) child;
+                }
+            }
+        }
+        return null;
+    }
+
     /**
      * Collect included and imported schema documents
      */

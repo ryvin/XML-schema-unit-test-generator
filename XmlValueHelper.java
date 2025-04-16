@@ -200,19 +200,45 @@ public class XmlValueHelper {
     /**
      * Generate value for specific type
      */
-    private String generateValueForType(String type) {
+    public String generateValueForType(String type) {
         if (type == null || type.isEmpty()) {
-            return "SampleValue";
+            return "1"; // fallback: minimal valid value
         }
-        
         // Remove namespace prefix if present
         String localType = type.contains(":") ? type.substring(type.indexOf(":") + 1) : type;
-        
+
+        // Check for restrictions (pattern, min/max, length, etc.)
+        // This requires SchemaParser to expose restriction info, assumed as pseudo-code:
+        // Restrictions restrictions = schemaParser.getRestrictionsForType(type);
+        // For now, simulate with utility methods (to be implemented in SchemaParser):
+        String pattern = schemaParser.findPatternForType(type);
+        Integer minLength = schemaParser.findMinLengthForType(type);
+        Integer maxLength = schemaParser.findMaxLengthForType(type);
+        String minInclusive = schemaParser.findMinInclusiveForType(type);
+        String maxInclusive = schemaParser.findMaxInclusiveForType(type);
+
+        // Pattern restriction (for strings)
+        if (pattern != null && !pattern.isEmpty()) {
+            return generateStringMatchingPattern(pattern, minLength, maxLength);
+        }
+        // Length restriction (for strings)
+        if (minLength != null || maxLength != null) {
+            int len = (minLength != null) ? minLength : 1;
+            if (maxLength != null && len > maxLength) len = maxLength;
+            return generateFixedLengthString(len);
+        }
+        // Numeric range restrictions
+        if (minInclusive != null || maxInclusive != null) {
+            int min = (minInclusive != null) ? Integer.parseInt(minInclusive) : 0;
+            int max = (maxInclusive != null) ? Integer.parseInt(maxInclusive) : min + 10;
+            int value = min + ((max - min) / 2);
+            return Integer.toString(value);
+        }
         // Generate value based on type
         if (localType.endsWith("NMTOKEN")) {
-            return "ValidNMTOKEN";
+            return "NMTOKEN123";
         } else if (localType.endsWith("string") || localType.endsWith("normalizedString") || localType.endsWith("token")) {
-            return "SampleString";
+            return "ABC";
         } else if (localType.endsWith("int") || localType.endsWith("integer") || localType.endsWith("positiveInteger")) {
             return "1";
         } else if (localType.endsWith("decimal") || localType.endsWith("float") || localType.endsWith("double")) {
@@ -220,13 +246,13 @@ public class XmlValueHelper {
         } else if (localType.endsWith("boolean")) {
             return "true";
         } else if (localType.endsWith("date")) {
-            return "2020-01-01";
+            return "2023-01-01";
         } else if (localType.endsWith("time")) {
             return "12:00:00";
         } else if (localType.endsWith("dateTime")) {
-            return "2020-01-01T12:00:00";
+            return "2023-01-01T12:00:00";
         } else if (localType.endsWith("gYear")) {
-            return "2022"; // Use a valid year for gYear
+            return "2022";
         } else if (localType.endsWith("gMonth")) {
             return "01";
         } else if (localType.endsWith("gDay")) {
@@ -238,8 +264,29 @@ public class XmlValueHelper {
         } else if (localType.endsWith("duration")) {
             return "P1D";
         } else {
-            return "SampleValue";
+            return "1";
         }
+    }
+
+    // Utility: generate a string of fixed length (A-Z)
+    private String generateFixedLengthString(int len) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < len; i++) {
+            sb.append((char)('A' + (i % 26)));
+        }
+        return sb.toString();
+    }
+
+    // Utility: generate a string matching a simple pattern (placeholder, real impl should use regexgen)
+    private String generateStringMatchingPattern(String pattern, Integer minLength, Integer maxLength) {
+        // For demo: if pattern is [A-Z]{n}, produce n uppercase letters
+        if (pattern.matches("\\[A-Z\\]\\{\\d+\\}")) {
+            int n = Integer.parseInt(pattern.replaceAll(".*\\{(\\d+)\\}.*", "$1"));
+            return generateFixedLengthString(n);
+        }
+        // Fallback: just use fixed length string
+        int len = (minLength != null) ? minLength : 3;
+        return generateFixedLengthString(len);
     }
     
     /**
