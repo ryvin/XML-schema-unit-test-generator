@@ -335,7 +335,6 @@ private void indexGlobalGroupDefinitions(Document schemaDoc) {
             }
         }
     }
-}
 
     /**
      * Find child elements for a given element, supporting all compositor types
