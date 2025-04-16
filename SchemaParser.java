@@ -756,62 +756,90 @@ public class SchemaParser {
                         }
                     }
                 }
-            }
-        }
-        XMLSchemaTestGenerator.debug("findEnumerationValuesForType: For type '" + typeName + "' found enums: " + values);
         return values;
     }
-    // Check for inline simple type with enumerations
-        Element simpleType = generator.findChildElement(element, "simpleType");
-        if (simpleType != null) {
-            values.addAll(findEnumerationsInSimpleType(simpleType));
-        }
-
-        // --- PATCH: If the element is local (not global), and has a type attribute, resolve and extract enumerations from the referenced global <simpleType> ---
-        String typeAttr = element.getAttribute("type");
-        if (typeAttr != null && !typeAttr.isEmpty()) {
-            String typeName = typeAttr.contains(":") ? typeAttr.split(":")[1] : typeAttr;
-            Element typeDef = resolveTypeDefinition(typeName);
-            if (typeDef != null) {
-                if (typeDef.getLocalName().equals("simpleType")) {
-                    List<String> fromType = findEnumerationsInSimpleType(typeDef);
-                    XMLSchemaTestGenerator.debug("findEnumerationValues: Resolved type '" + typeName + "' for element '" + element.getAttribute("name") + "' and found enums: " + fromType);
-                    values.addAll(fromType);
+    if (typeDef.getLocalName().equals("simpleType")) {
+        values.addAll(findEnumerationsInSimpleType(typeDef));
+    } else if (typeDef.getLocalName().equals("complexType")) {
+        // Check for simpleContent restriction
+        Element simpleContent = generator.findChildElement(typeDef, "simpleContent");
+        if (simpleContent != null) {
+            Element restriction = generator.findChildElement(simpleContent, "restriction");
+            if (restriction != null) {
+                // Direct enumerations in restriction
+                NodeList enums = restriction.getElementsByTagNameNS(XMLConstants.W3C_XML_SCHEMA_NS_URI, "enumeration");
+                for (int i = 0; i < enums.getLength(); i++) {
+                    Element enumeration = (Element) enums.item(i);
+                    values.add(enumeration.getAttribute("value"));
                 }
-            } else {
-                XMLSchemaTestGenerator.debug("findEnumerationValues: No typeDef found for type: " + typeAttr + ", element: " + element.getAttribute("name"));
+                // If no direct enums, try base type
+                if (values.isEmpty()) {
+                    String base = restriction.getAttribute("base");
+                    if (base != null && !base.isEmpty()) {
+                        XMLSchemaTestGenerator.debug("findEnumerationValuesForType: complexType with simpleContent, checking base type '" + base + "'");
+                        values.addAll(findEnumerationValuesForType(base));
+                    }
+                }
             }
         }
-
-        // Cache the results
-        if (!elementId.isEmpty()) {
-            generator.getEnumValueCache().put(elementId, values);
-        }
-        return values;
     }
-            
-            // Check for inline simple type
-            Element inlineType = generator.findChildElement(list, "simpleType");
-            if (inlineType != null) {
-                values.addAll(findEnumerationsInSimpleType(inlineType));
-            }
-        }
-        
-        return values;
-    }
+    XMLSchemaTestGenerator.debug("findEnumerationValuesForType: For type '" + typeName + "' found enums: " + values);
+    return values;
+}
 
-    /**
-     * Resolve a type name to its global type definition element
-     */
-    public Element resolveTypeDefinition(String typeName) {
-        XMLSchemaTestGenerator.debug("resolveTypeDefinition: Available typeDefinitions: " + typeDefinitions.keySet());
-        return typeDefinitions.get(typeName);
+/**
+ * Find enumeration values for an element or attribute
+ */
+public List<String> findEnumerationValues(Element element) {
+    // Check cache first
+    String elementId = element.getAttribute("name");
+    if (generator.getEnumValueCache().containsKey(elementId)) {
+        return generator.getEnumValueCache().get(elementId);
     }
     
-    /**
-     * Gets the namespace URI for a prefix
-     */
-    public String getNamespaceForPrefix(String prefix) {
-        return prefixToNamespaceMap.get(prefix);
+    List<String> values = new ArrayList<>();
+    
+    // Check for inline simple type with enumerations
+    Element simpleType = generator.findChildElement(element, "simpleType");
+    if (simpleType != null) {
+        values.addAll(findEnumerationsInSimpleType(simpleType));
     }
+
+    // If the element is local (not global), and has a type attribute, resolve and extract enumerations from the referenced global <simpleType>
+    String typeAttr = element.getAttribute("type");
+    if (typeAttr != null && !typeAttr.isEmpty()) {
+        String typeName = typeAttr.contains(":") ? typeAttr.split(":")[1] : typeAttr;
+        Element typeDef = resolveTypeDefinition(typeName);
+        if (typeDef != null) {
+            if (typeDef.getLocalName().equals("simpleType")) {
+                List<String> fromType = findEnumerationsInSimpleType(typeDef);
+                XMLSchemaTestGenerator.debug("findEnumerationValues: Resolved type '" + typeName + "' for element '" + element.getAttribute("name") + "' and found enums: " + fromType);
+                values.addAll(fromType);
+            }
+        } else {
+            XMLSchemaTestGenerator.debug("findEnumerationValues: No typeDef found for type: " + typeAttr + ", element: " + element.getAttribute("name"));
+        }
+    }
+
+    // Cache the results
+    if (!elementId.isEmpty()) {
+        generator.getEnumValueCache().put(elementId, values);
+    }
+    return values;
+}
+
+/**
+ * Resolve a type name to its global type definition element
+ */
+public Element resolveTypeDefinition(String typeName) {
+    XMLSchemaTestGenerator.debug("resolveTypeDefinition: Available typeDefinitions: " + typeDefinitions.keySet());
+    return typeDefinitions.get(typeName);
+}
+
+/**
+ * Gets the namespace URI for a prefix
+ */
+public String getNamespaceForPrefix(String prefix) {
+    return prefixToNamespaceMap.get(prefix);
+}
 }
