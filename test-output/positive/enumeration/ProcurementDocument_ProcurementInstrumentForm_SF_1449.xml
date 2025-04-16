@@ -2,7 +2,7 @@
 <ProcurementDocument xmlns="" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation=" schemas/vehicles.xsd">
   <SchemaVersionUsed>2.7</SchemaVersionUsed>
   <ProcurementInstrumentForm>SF 1449</ProcurementInstrumentForm>
-  <OriginatorDetails>SampleValue</OriginatorDetails>
-  <AwardInstrument>SampleValue</AwardInstrument>
-  <AwardModificationInstrument>SampleValue</AwardModificationInstrument>
+  <OriginatorDetails>1</OriginatorDetails>
+  <AwardInstrument>1</AwardInstrument>
+  <AwardModificationInstrument>1</AwardModificationInstrument>
 </ProcurementDocument>
