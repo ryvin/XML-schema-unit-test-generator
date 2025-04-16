@@ -56,10 +56,8 @@ public class SchemaParser {
     public static Map<String, Element> typeDefinitions = new HashMap<>(); // Global type definitions
 
     
-    private Set<String> resolvedReferences = new HashSet<>();
     private Map<String, String> prefixToNamespaceMap = new HashMap<>();
     private Map<String, Element> groupDefinitions = new HashMap<>();
-    private Map<String, List<Element>> substitutionGroups = new HashMap<>();
     private XMLSchemaTestGenerator generator;
     // Local cache for enumeration values (for modular ConstraintCrafter usage)
     private final Map<String, List<String>> enumValueCache = new HashMap<>();
@@ -67,12 +65,8 @@ public class SchemaParser {
     /**
      * Find a child element by local name (generator-independent)
      */
-    private static Element findChildElement(Element parent, String localName) {
-        // Debug child search
-        if (parent != null) {
-            XMLSchemaTestGenerator.log("[DEBUG] Searching for child '" + localName + "' in parent '" + parent.getAttribute("name") + "'");
-        }
-
+    // Utility method for finding child elements by local name
+    public static Element findChildElement(Element parent, String localName) {
         if (parent == null) return null;
         NodeList children = parent.getChildNodes();
         for (int i = 0; i < children.getLength(); i++) {
@@ -402,58 +396,6 @@ private void indexGlobalGroupDefinitions(Document schemaDoc) {
     }
     
     /**
-     * Process compositors (sequence, choice, all, group) recursively
-     */
-    private void processCompositors(Element parent, List<ElementInfo> childElements) {
-        // Check for all compositor types
-        for (String compositorName : new String[]{"sequence", "choice", "all"}) {
-            NodeList compositors = parent.getElementsByTagNameNS(XMLConstants.W3C_XML_SCHEMA_NS_URI, compositorName);
-            
-            for (int i = 0; i < compositors.getLength(); i++) {
-                Element compositor = (Element) compositors.item(i);
-                
-                // Only process direct children of the parent
-                if (isDirectChild(compositor, parent)) {
-                    // Process elements within this compositor
-                    processCompositorElements(compositor, childElements, compositorName);
-                    
-                    // Recursively process nested compositors
-                    processCompositors(compositor, childElements);
-                }
-            }
-        }
-        
-        // Handle group references
-        NodeList groups = parent.getElementsByTagNameNS(XMLConstants.W3C_XML_SCHEMA_NS_URI, "group");
-        for (int i = 0; i < groups.getLength(); i++) {
-            Element group = (Element) groups.item(i);
-            
-            // Only process direct children of the parent
-            if (isDirectChild(group, parent)) {
-                String refAttr = group.getAttribute("ref");
-                if (!refAttr.isEmpty()) {
-                    // This is a group reference - resolve it
-                    Element resolvedGroup = resolveGroupReference(refAttr);
-                    if (resolvedGroup != null) {
-                        // Process elements in the resolved group
-                        processCompositors(resolvedGroup, childElements);
-                    }
-                } else {
-                    // This is an inline group definition
-                    processCompositors(group, childElements);
-                }
-            }
-        }
-    }
-    
-    /**
-     * Check if a node is a direct child of a parent
-     */
-    private boolean isDirectChild(Node child, Node parent) {
-        return child.getParentNode().equals(parent);
-    }
-    
-    /**
      * Process elements within a compositor
      */
     private void processCompositorElements(Element compositor, List<ElementInfo> childElements, String compositorType) {
@@ -461,11 +403,7 @@ private void indexGlobalGroupDefinitions(Document schemaDoc) {
         
         // Get compositor min/maxOccurs (for choice)
         String compositorMinOccurs = compositor.getAttribute("minOccurs");
-        String compositorMaxOccurs = compositor.getAttribute("maxOccurs");
         int compositorMin = compositorMinOccurs.isEmpty() ? 1 : Integer.parseInt(compositorMinOccurs);
-        int compositorMax = compositorMaxOccurs.isEmpty() ? 1 : 
-                          "unbounded".equals(compositorMaxOccurs) ? Integer.MAX_VALUE : 
-                          Integer.parseInt(compositorMaxOccurs);
         
         for (int i = 0; i < elements.getLength(); i++) {
             Element childElement = (Element) elements.item(i);
@@ -523,6 +461,13 @@ private void indexGlobalGroupDefinitions(Document schemaDoc) {
             // We could generate test data for this, but it's complex and out of scope for this task
             XMLSchemaTestGenerator.log("Found <any> element in compositor - wildcard elements will not be tested");
         }
+    }
+    
+    /**
+     * Check if a node is a direct child of a parent
+     */
+    private boolean isDirectChild(Node child, Node parent) {
+        return child.getParentNode().equals(parent);
     }
     
     /**
@@ -606,15 +551,6 @@ private void indexGlobalGroupDefinitions(Document schemaDoc) {
     }
     
     /**
-     * Resolve an element reference
-     */
-    private Element resolveReference(String ref) {
-        // Handle qualified names
-        String localName = ref;
-        String prefix = "";
-        String targetNamespace = null;
-        
-        if (ref.contains(":")) {
             String[] parts = ref.split(":");
             prefix = parts[0];
             localName = parts[1];

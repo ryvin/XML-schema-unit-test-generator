@@ -4,7 +4,7 @@
  */
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
-import org.w3c.dom.Node;
+
 import javax.xml.XMLConstants;
 import java.util.List;
 
@@ -108,7 +108,7 @@ public class XmlValueHelper {
         }
 
         // --- Existing logic for inline <simpleType> and parent complexType follows ---
-        Element inlineSimpleType = findChildElement(schemaElement, "simpleType");
+        Element inlineSimpleType = SchemaParser.findChildElement(schemaElement, "simpleType");
         if (inlineSimpleType != null) {
             List<String> inlineEnums = schemaParser.findEnumerationValues(inlineSimpleType);
             XMLSchemaTestGenerator.debug("getElementValue for element '" + (schemaElement.getAttribute("name")) + "' inline simpleType enums: " + inlineEnums);
@@ -133,7 +133,7 @@ public class XmlValueHelper {
                     for (int i = 0; i < elements.getLength(); i++) {
                         Element el = (Element) elements.item(i);
                         if (childName.equals(el.getAttribute("name"))) {
-                            Element childSimpleType = findChildElement(el, "simpleType");
+                            Element childSimpleType = SchemaParser.findChildElement(el, "simpleType");
                             if (childSimpleType != null) {
                                 List<String> childInlineEnums = schemaParser.findEnumerationValues(childSimpleType);
                                 XMLSchemaTestGenerator.debug("getElementValue for element '" + childName + "' parent complexType inline simpleType enums: " + childInlineEnums);
@@ -148,9 +148,9 @@ public class XmlValueHelper {
                                     return "SampleValue";
                                 }
                             }
-                            Element simpleContent = findChildElement(el, "simpleContent");
+                            Element simpleContent = SchemaParser.findChildElement(el, "simpleContent");
                             if (simpleContent != null) {
-                                Element restriction = findChildElement(simpleContent, "restriction");
+                                Element restriction = SchemaParser.findChildElement(simpleContent, "restriction");
                                 if (restriction != null) {
                                     List<String> restrictionEnums = schemaParser.findEnumerationValues(restriction);
                                     XMLSchemaTestGenerator.debug("getElementValue for element '" + childName + "' parent complexType simpleContent restriction enums: " + restrictionEnums);
@@ -312,7 +312,7 @@ public class XmlValueHelper {
             return false;
         }
         
-        Element complexType = findChildElement(elementDef, "complexType");
+        Element complexType = SchemaParser.findChildElement(elementDef, "complexType");
         if (complexType == null) {
             return false;
         }
@@ -327,21 +327,5 @@ public class XmlValueHelper {
         }
         
         return false;
-    }
-    
-    /**
-     * Find a child element with the specified local name
-     */
-    private Element findChildElement(Element parent, String localName) {
-        XMLSchemaTestGenerator.debug("XmlValueHelper.findChildElement CALLED for child='" + localName + "' parent='" + (parent != null ? parent.getAttribute("name") : "<null>") + "'");
-        if (parent == null) return null;
-        NodeList children = parent.getChildNodes();
-        for (int i = 0; i < children.getLength(); i++) {
-            Node child = children.item(i);
-            if (child.getNodeType() == Node.ELEMENT_NODE && localName.equals(child.getLocalName())) {
-                return (Element) child;
-            }
-        }
-        return null;
     }
 }

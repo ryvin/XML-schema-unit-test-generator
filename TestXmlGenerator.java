@@ -4,7 +4,7 @@
  */
 import java.util.*;
 import org.w3c.dom.Element;
-import org.w3c.dom.NodeList;
+
 import javax.xml.XMLConstants;
 
 /**
@@ -12,111 +12,6 @@ import javax.xml.XMLConstants;
  */
 public class TestXmlGenerator {
 
-    // TEMPORARY: Demo main method for schema-driven value generation
-    public static void main(String[] args) throws Exception {
-        // Example: Load schema, parse, and print generated value for a sample type/element
-        String schemaFile = "schemas/PDS_Schema_v2.7.0.1.xsd";
-        XMLSchemaTestGenerator generator = new XMLSchemaTestGenerator();
-        SchemaParser schemaParser = new SchemaParser(generator);
-        generator.loadSchema(schemaFile);
-        XmlValueHelper valueHelper = new XmlValueHelper(schemaParser);
-
-        // Get all global element and type names
-        List<String> elementNames = new ArrayList<>(generator.getGlobalElementDefinitions().keySet());
-        List<String> typeNames = new ArrayList<>(SchemaParser.typeDefinitions.keySet());
-        Collections.shuffle(elementNames);
-        Collections.shuffle(typeNames);
-
-        // Schema line mapper for reporting line numbers
-        SchemaLineMapper lineMapper = new SchemaLineMapper(schemaFile);
-
-        int numElementTests = Math.min(100, elementNames.size());
-        int numTypeTests = Math.min(100, typeNames.size());
-
-        System.out.println("--- Random Demo: Values for 100 Global Types ---");
-        for (int i = 0; i < numTypeTests; i++) {
-            String typeName = typeNames.get(i);
-            Element typeDef = SchemaParser.typeDefinitions.get(typeName);
-            List<String> enums = schemaParser.findEnumerationValuesForType(typeName);
-            String pattern = schemaParser.findPatternForType(typeName);
-            Integer minLen = schemaParser.findMinLengthForType(typeName);
-            Integer maxLen = schemaParser.findMaxLengthForType(typeName);
-            String minInc = schemaParser.findMinInclusiveForType(typeName);
-            String maxInc = schemaParser.findMaxInclusiveForType(typeName);
-            String value = valueHelper.generateValueForType(typeName);
-
-            // Explain why this value was chosen
-            String explanation = "";
-            if (enums != null && !enums.isEmpty()) {
-                explanation = "Used first non-empty enumeration value.";
-            } else if (pattern != null) {
-                explanation = "Generated value to match pattern restriction.";
-            } else if (minLen != null || maxLen != null) {
-                explanation = "Generated value to satisfy length restrictions.";
-            } else if (minInc != null || maxInc != null) {
-                explanation = "Generated value to satisfy inclusive bounds.";
-            } else {
-                explanation = "Used default value for type.";
-            }
-
-            Integer typeLine = lineMapper.getTypeLine(typeName);
-            System.out.println("Type: " + typeName +
-                (typeLine != null ? " (" + schemaFile + ":" + typeLine + ")" : ""));
-            System.out.println("  Enumerations: " + enums);
-            System.out.println("  Pattern: " + pattern);
-            System.out.println("  MinLength: " + minLen + ", MaxLength: " + maxLen);
-            System.out.println("  MinInclusive: " + minInc + ", MaxInclusive: " + maxInc);
-            System.out.println("  => Generated Value: " + value);
-            System.out.println("  Reason: " + explanation);
-            System.out.println("-----------------------------------------------------");
-        }
-
-        System.out.println("--- Random Demo: Values for 100 Global Elements ---");
-        for (int i = 0; i < numElementTests; i++) {
-            String elementName = elementNames.get(i);
-            Element element = generator.getGlobalElementDefinitions().get(elementName);
-            String value = valueHelper.getElementValue(element);
-            // Try to get the type and restrictions for this element
-            String type = element.getAttribute("type");
-            List<String> enums = schemaParser.findEnumerationValues(element);
-            String pattern = null;
-            Integer minLen = null, maxLen = null;
-            String minInc = null, maxInc = null;
-            if (type != null && !type.isEmpty()) {
-                pattern = schemaParser.findPatternForType(type);
-                minLen = schemaParser.findMinLengthForType(type);
-                maxLen = schemaParser.findMaxLengthForType(type);
-                minInc = schemaParser.findMinInclusiveForType(type);
-                maxInc = schemaParser.findMaxInclusiveForType(type);
-            }
-            // Explain why this value was chosen
-            String explanation = "";
-            if (enums != null && !enums.isEmpty()) {
-                explanation = "Used first non-empty enumeration value.";
-            } else if (pattern != null) {
-                explanation = "Generated value to match pattern restriction.";
-            } else if (minLen != null || maxLen != null) {
-                explanation = "Generated value to satisfy length restrictions.";
-            } else if (minInc != null || maxInc != null) {
-                explanation = "Generated value to satisfy inclusive bounds.";
-            } else {
-                explanation = "Used default value for type.";
-            }
-            Integer elemLine = lineMapper.getElementLine(elementName);
-            System.out.println("Element: " + elementName +
-                (elemLine != null ? " (" + schemaFile + ":" + elemLine + ")" : ""));
-            System.out.println("  Type: " + type);
-            System.out.println("  Enumerations: " + enums);
-            System.out.println("  Pattern: " + pattern);
-            System.out.println("  MinLength: " + minLen + ", MaxLength: " + maxLen);
-            System.out.println("  MinInclusive: " + minInc + ", MaxInclusive: " + maxInc);
-            System.out.println("  => Generated Value: " + value);
-            System.out.println("  Reason: " + explanation);
-            System.out.println("-----------------------------------------------------");
-        }
-        System.out.println("--- Review the above generated values, restrictions, and reasons for each test. ---");
-    }
-    
     private XMLSchemaTestGenerator generator;
     private SchemaParser schemaParser;
     private XmlValueHelper xmlValueHelper;
@@ -151,7 +46,7 @@ public class TestXmlGenerator {
         for (ElementInfo childInfo : allChildElements) {
             String childName = childInfo.name;
             // Find the schemaElement for this child
-            Element childSchemaElement = findChildSchemaElement(parentSchemaElement, childName);
+            Element childSchemaElement = schemaParser.findChildElement(parentSchemaElement, childName);
             
             // Skip elements we're not testing in this case and maintain the right sequence
             if (!childName.equals(targetChildName)) {
@@ -177,24 +72,12 @@ public class TestXmlGenerator {
     }
     
     /**
-     * Find the schema element definition for a child element
-     */
-    private Element findChildSchemaElement(Element parentElement, String childName) {
-        if (parentElement == null) {
-            return null;
-        }
-        // Use robust generator.findChildElement for all child lookups
-        return generator.findChildElement(parentElement, childName);
-    }
-    
-    /**
      * Add complete element instances with appropriate structure
      */
     public void addCompleteElementInstance(StringBuilder xml, String elementName, boolean isReference,
                                          int count, String namespace, Element schemaElement) {
         // Extract prefix and local name
         String prefix = generator.getDefaultNamespacePrefix();
-        boolean hasPrefix = prefix != null && !prefix.isEmpty();
         String localName = elementName;
         if (elementName.contains(":")) {
             String[] parts = elementName.split(":");
@@ -231,12 +114,11 @@ public class TestXmlGenerator {
             StringBuilder attrBuilder = buildAttributeString(effectiveSchemaElement);
 
             // Determine if this element is a simple type and get its children
-            boolean isSimpleType = isSimpleTypeElement(effectiveSchemaElement);
             List<ElementInfo> children = getElementChildren(effectiveSchemaElement);
 
             // Add opening tag with attributes
             xml.append("  <");
-            if (hasPrefix) {
+            if (prefix != null && !prefix.isEmpty()) {
                 xml.append(prefix).append(":");
             }
             xml.append(localName).append(attrBuilder).append(">\n");
@@ -256,7 +138,7 @@ public class TestXmlGenerator {
 
             // Close the element
             xml.append("  </");
-            if (hasPrefix) {
+            if (prefix != null && !prefix.isEmpty()) {
                 xml.append(prefix).append(":");
             }
             xml.append(localName).append(">\n");
@@ -324,7 +206,7 @@ public class TestXmlGenerator {
             }
         }
         // Find complex type definition
-        Element complexType = generator.findChildElement(elementDef, "complexType");
+        Element complexType = SchemaParser.findChildElement(elementDef, "complexType");
         if (complexType == null) {
             return attrBuilder;
         }
@@ -365,15 +247,15 @@ public class TestXmlGenerator {
         }
         
         // Check for simple type definition
-        Element simpleType = generator.findChildElement(element, "simpleType");
+        Element simpleType = SchemaParser.findChildElement(element, "simpleType");
         if (simpleType != null) {
             return true;
         }
         
         // Check for complex type with simple content
-        Element complexType = generator.findChildElement(element, "complexType");
+        Element complexType = SchemaParser.findChildElement(element, "complexType");
         if (complexType != null) {
-            Element simpleContent = generator.findChildElement(complexType, "simpleContent");
+            Element simpleContent = SchemaParser.findChildElement(complexType, "simpleContent");
             if (simpleContent != null) {
                 return true;
             }
@@ -413,12 +295,12 @@ public class TestXmlGenerator {
      */
     private void addChildElements(StringBuilder xml, List<ElementInfo> children, Element parentElement, 
                                  String namespace, String prefix) {
-        boolean hasPrefix = prefix != null && !prefix.isEmpty();
+
         for (ElementInfo child : children) {
             int childCount = Math.max(child.minOccurs, 1); // Always at least 1
             
             // Find schema element for this child
-            Element childSchemaElement = findChildElement(parentElement, child.name);
+            Element childSchemaElement = schemaParser.findChildElement(parentElement, child.name);
             // --- DEBUG: Print parent and child info, and whether schema element is found ---
             String parentName = (parentElement != null && parentElement.hasAttribute("name")) ? parentElement.getAttribute("name") : "<null>";
             XMLSchemaTestGenerator.debug("[DEBUG] addChildElements: parent='" + parentName + "', child='" + child.name + "', schemaElement=" + (childSchemaElement == null ? "NULL" : "FOUND"));
@@ -432,7 +314,7 @@ public class TestXmlGenerator {
             if (child.isSimpleType) {
                 for (int i = 0; i < childCount; i++) {
                     xml.append("    <");
-                    if (hasPrefix) {
+                    if (prefix != null && !prefix.isEmpty()) {
                         xml.append(prefix).append(":");
                     }
                     xml.append(childLocalName).append(">");
@@ -442,7 +324,7 @@ public class TestXmlGenerator {
                     xml.append(value);
                     
                     xml.append("</");
-                    if (hasPrefix) {
+                    if (prefix != null && !prefix.isEmpty()) {
                         xml.append(prefix).append(":");
                     }
                     xml.append(childLocalName).append(">\n");
@@ -455,18 +337,6 @@ public class TestXmlGenerator {
     }
     
     /**
-     * Find a child element by name
-     */
-    private Element findChildElement(Element parentElement, String childName) {
-        XMLSchemaTestGenerator.debug("[DEBUG] TestXmlGenerator.findChildElement CALLED for child='" + childName + "' parent='" + (parentElement != null ? parentElement.getAttribute("name") : "<null>") + "'");
-        XMLSchemaTestGenerator.debug("[DEBUG] findChildElement: ENTER parent='" + (parentElement != null ? parentElement.getAttribute("name") : "<null>") + "', child='" + childName + "'");
-        if (parentElement == null) {
-            XMLSchemaTestGenerator.debug("[DEBUG] findChildElement: parentElement is null for child='" + childName + "'");
-            return null;
-        }
-        // Extract local name if it's a qualified name with prefix
-        String localChildName = childName;
-        if (childName.contains(":")) {
             localChildName = childName.substring(childName.indexOf(":") + 1);
         }
         Element typeComplexType = null;
@@ -479,11 +349,11 @@ public class TestXmlGenerator {
             }
         }
         if (typeComplexType == null) {
-            typeComplexType = generator.findChildElement(parentElement, "complexType");
+            typeComplexType = SchemaParser.findChildElement(parentElement, "complexType");
             XMLSchemaTestGenerator.debug("[DEBUG] findChildElement: parent='" + (parentElement.getAttribute("name")) + "', inline complexType found=" + (typeComplexType != null));
         }
         if (typeComplexType != null) {
-            Element sequence = generator.findChildElement(typeComplexType, "sequence");
+            Element sequence = SchemaParser.findChildElement(typeComplexType, "sequence");
             if (sequence != null) {
                 org.w3c.dom.NodeList elements = sequence.getElementsByTagName("element");
                 XMLSchemaTestGenerator.debug("[DEBUG] findChildElement: Searching <sequence> for child='" + childName + "'. Found " + elements.getLength() + " elements.");
