@@ -27,25 +27,94 @@ public class TestXmlGenerator {
         Collections.shuffle(elementNames);
         Collections.shuffle(typeNames);
 
-        int numElementTests = Math.min(10, elementNames.size());
-        int numTypeTests = Math.min(10, typeNames.size());
+        // Schema line mapper for reporting line numbers
+        SchemaLineMapper lineMapper = new SchemaLineMapper(schemaFile);
 
-        System.out.println("--- Random Demo: Values for 10 Global Types ---");
+        int numElementTests = Math.min(100, elementNames.size());
+        int numTypeTests = Math.min(100, typeNames.size());
+
+        System.out.println("--- Random Demo: Values for 100 Global Types ---");
         for (int i = 0; i < numTypeTests; i++) {
             String typeName = typeNames.get(i);
+            Element typeDef = SchemaParser.typeDefinitions.get(typeName);
+            List<String> enums = schemaParser.findEnumerationValuesForType(typeName);
+            String pattern = schemaParser.findPatternForType(typeName);
+            Integer minLen = schemaParser.findMinLengthForType(typeName);
+            Integer maxLen = schemaParser.findMaxLengthForType(typeName);
+            String minInc = schemaParser.findMinInclusiveForType(typeName);
+            String maxInc = schemaParser.findMaxInclusiveForType(typeName);
             String value = valueHelper.generateValueForType(typeName);
-            System.out.println("Type: " + typeName + " => Generated Value: " + value);
+
+            // Explain why this value was chosen
+            String explanation = "";
+            if (enums != null && !enums.isEmpty()) {
+                explanation = "Used first non-empty enumeration value.";
+            } else if (pattern != null) {
+                explanation = "Generated value to match pattern restriction.";
+            } else if (minLen != null || maxLen != null) {
+                explanation = "Generated value to satisfy length restrictions.";
+            } else if (minInc != null || maxInc != null) {
+                explanation = "Generated value to satisfy inclusive bounds.";
+            } else {
+                explanation = "Used default value for type.";
+            }
+
+            Integer typeLine = lineMapper.getTypeLine(typeName);
+            System.out.println("Type: " + typeName +
+                (typeLine != null ? " (" + schemaFile + ":" + typeLine + ")" : ""));
+            System.out.println("  Enumerations: " + enums);
+            System.out.println("  Pattern: " + pattern);
+            System.out.println("  MinLength: " + minLen + ", MaxLength: " + maxLen);
+            System.out.println("  MinInclusive: " + minInc + ", MaxInclusive: " + maxInc);
+            System.out.println("  => Generated Value: " + value);
+            System.out.println("  Reason: " + explanation);
+            System.out.println("-----------------------------------------------------");
         }
 
-        System.out.println("--- Random Demo: Values for 10 Global Elements ---");
+        System.out.println("--- Random Demo: Values for 100 Global Elements ---");
         for (int i = 0; i < numElementTests; i++) {
             String elementName = elementNames.get(i);
             Element element = generator.getGlobalElementDefinitions().get(elementName);
             String value = valueHelper.getElementValue(element);
-            System.out.println("Element: " + elementName + " => Generated Value: " + value);
+            // Try to get the type and restrictions for this element
+            String type = element.getAttribute("type");
+            List<String> enums = schemaParser.findEnumerationValues(element);
+            String pattern = null;
+            Integer minLen = null, maxLen = null;
+            String minInc = null, maxInc = null;
+            if (type != null && !type.isEmpty()) {
+                pattern = schemaParser.findPatternForType(type);
+                minLen = schemaParser.findMinLengthForType(type);
+                maxLen = schemaParser.findMaxLengthForType(type);
+                minInc = schemaParser.findMinInclusiveForType(type);
+                maxInc = schemaParser.findMaxInclusiveForType(type);
+            }
+            // Explain why this value was chosen
+            String explanation = "";
+            if (enums != null && !enums.isEmpty()) {
+                explanation = "Used first non-empty enumeration value.";
+            } else if (pattern != null) {
+                explanation = "Generated value to match pattern restriction.";
+            } else if (minLen != null || maxLen != null) {
+                explanation = "Generated value to satisfy length restrictions.";
+            } else if (minInc != null || maxInc != null) {
+                explanation = "Generated value to satisfy inclusive bounds.";
+            } else {
+                explanation = "Used default value for type.";
+            }
+            Integer elemLine = lineMapper.getElementLine(elementName);
+            System.out.println("Element: " + elementName +
+                (elemLine != null ? " (" + schemaFile + ":" + elemLine + ")" : ""));
+            System.out.println("  Type: " + type);
+            System.out.println("  Enumerations: " + enums);
+            System.out.println("  Pattern: " + pattern);
+            System.out.println("  MinLength: " + minLen + ", MaxLength: " + maxLen);
+            System.out.println("  MinInclusive: " + minInc + ", MaxInclusive: " + maxInc);
+            System.out.println("  => Generated Value: " + value);
+            System.out.println("  Reason: " + explanation);
+            System.out.println("-----------------------------------------------------");
         }
-
-        System.out.println("--- Review the above generated values and validate them against your schema definitions. ---");
+        System.out.println("--- Review the above generated values, restrictions, and reasons for each test. ---");
     }
     
     private XMLSchemaTestGenerator generator;

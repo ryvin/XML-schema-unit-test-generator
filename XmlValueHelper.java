@@ -229,10 +229,25 @@ public class XmlValueHelper {
         }
         // Numeric range restrictions
         if (minInclusive != null || maxInclusive != null) {
-            int min = (minInclusive != null) ? Integer.parseInt(minInclusive) : 0;
-            int max = (maxInclusive != null) ? Integer.parseInt(maxInclusive) : min + 10;
-            int value = min + ((max - min) / 2);
-            return Integer.toString(value);
+            try {
+                // Try to parse as decimal first
+                java.math.BigDecimal min = (minInclusive != null) ? new java.math.BigDecimal(minInclusive) : java.math.BigDecimal.ZERO;
+                java.math.BigDecimal max = (maxInclusive != null) ? new java.math.BigDecimal(maxInclusive) : min.add(java.math.BigDecimal.TEN);
+                java.math.BigDecimal value = min.add(max).divide(new java.math.BigDecimal("2"));
+                // Return as integer if type is integer, else as string/decimal
+                if (localType.endsWith("int") || localType.endsWith("integer") || localType.endsWith("positiveInteger") || localType.endsWith("long") || localType.endsWith("short") || localType.endsWith("byte")) {
+                    return Integer.toString(value.intValue());
+                } else {
+                    return value.stripTrailingZeros().toPlainString();
+                }
+            } catch (Exception e) {
+                // Fallback to safe default
+                if (localType.endsWith("decimal") || localType.endsWith("float") || localType.endsWith("double")) {
+                    return "1.0";
+                } else {
+                    return "1";
+                }
+            }
         }
         // Generate value based on type
         if (localType.endsWith("NMTOKEN")) {
