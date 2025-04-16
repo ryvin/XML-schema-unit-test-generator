@@ -340,7 +340,6 @@ private void indexGlobalGroupDefinitions(Document schemaDoc) {
      * Find child elements for a given element, supporting all compositor types
      * and handling nested compositors
      */
-    // This method should be defined at the class level, not inside another method
     public List<ElementInfo> findChildElements(Element element) {
         List<ElementInfo> childElements = new ArrayList<>();
         if (element == null) return childElements;
