@@ -76,13 +76,23 @@ public class TestXmlGenerator {
              if (!childName.equals(targetChildName)) {
                  // Add a single instance of non-target elements to satisfy minimum requirements
                  if (childInfo.minOccurs > 0) {
-                     addCompleteElementInstance(xml, childName, childInfo.isReference, 1, namespace, childSchemaElement);
+                     // Defensive: skip null/malformed childName
+                    if (childName == null || childName.trim().isEmpty() || (childName.contains(":") && childName.split(":").length != 2)) {
+                        System.err.println("[WARN] addCompleteElementInstance (recursive): childName is null, empty, or malformed: '" + childName + "', skipping.");
+                    } else {
+                        addCompleteElementInstance(xml, childName, childInfo.isReference, 1, namespace, childSchemaElement);
+                    }
                  }
                  continue;
              }
              
              // For the target element, add the specified number of occurrences
-             addCompleteElementInstance(xml, childName, isReference, occurrences, namespace, childSchemaElement);
+             // Defensive: skip null/malformed childName
+            if (childName == null || childName.trim().isEmpty() || (childName.contains(":") && childName.split(":").length != 2)) {
+                System.err.println("[WARN] addCompleteElementInstance (recursive): childName is null, empty, or malformed: '" + childName + "', skipping.");
+            } else {
+                addCompleteElementInstance(xml, childName, isReference, occurrences, namespace, childSchemaElement);
+            }
          }
          
          // Close parent element
@@ -100,18 +110,35 @@ public class TestXmlGenerator {
     // Updated to accept schemaElement for correct reference resolution
     public void addCompleteElementInstance(StringBuilder xml, String elementName, boolean isReference,
                                            int count, String namespace, Element schemaElement) {
+        // Defensive: handle null elementName
+        if (elementName == null || elementName.trim().isEmpty()) {
+            System.err.println("[WARN] addCompleteElementInstance: elementName is null or empty; skipping element.");
+            return;
+        }
+        // Defensive: skip malformed elementName (with colon but not two parts)
+        if (elementName.contains(":")) {
+            String[] parts = elementName.split(":");
+            if (parts.length != 2) {
+                System.err.println("[WARN] addCompleteElementInstance: malformed elementName with colon: '" + elementName + "', skipping.");
+                return;
+            }
+        }
         // Extract prefix and local name
         String prefix = generator.getDefaultNamespacePrefix();
         String localName = elementName;
-        if (elementName.contains(":")) {
+        if (elementName != null && elementName.contains(":")) {
             String[] parts = elementName.split(":");
-            prefix = parts[0];
-            localName = parts[1];
+            if (parts.length == 2) {
+                prefix = parts[0];
+                localName = parts[1];
+            } else {
+                System.err.println("[WARN] Malformed elementName with colon: " + elementName);
+            }
         }
         
         // Get namespace URI for this element
         String elementNamespace = namespace;
-        if (!prefix.isEmpty() && generator.getNamespaceMap().containsKey(prefix)) {
+        if (prefix != null && !prefix.isEmpty() && generator.getNamespaceMap().containsKey(prefix)) {
             elementNamespace = generator.getNamespaceMap().get(prefix);
         }
         
@@ -121,8 +148,16 @@ public class TestXmlGenerator {
             if (isReference && schemaElement != null) {
                 // If schemaElement is a reference, resolve to the global element it points to
                 String refName = schemaElement.getAttribute("ref");
-                if (!refName.isEmpty()) {
-                    String refLocal = refName.contains(":") ? refName.split(":")[1] : refName;
+                if (refName != null && !refName.isEmpty()) {
+                    String refLocal = refName;
+                    if (refName.contains(":")) {
+                        String[] parts = refName.split(":");
+                        if (parts.length == 2) {
+                            refLocal = parts[1];
+                        } else {
+                            System.err.println("[WARN] Malformed refName with colon: " + refName);
+                        }
+                    }
                     if (generator.getGlobalElementDefinitions().containsKey(refLocal)) {
                         effectiveSchemaElement = generator.getGlobalElementDefinitions().get(refLocal);
                     }
@@ -167,7 +202,7 @@ public class TestXmlGenerator {
                 } else {
                     for (List<ElementInfo> childList : generator.getGlobalElementsMap().values()) {
                         for (ElementInfo e : childList) {
-                            if (e.name.equals(localName)) {
+                            if (e != null && e.name != null && e.name.equals(localName)) {
                                 info = e;
                                 break;
                             }
@@ -183,7 +218,7 @@ public class TestXmlGenerator {
             } else {
                 for (List<ElementInfo> childList : generator.getGlobalElementsMap().values()) {
                     for (ElementInfo e : childList) {
-                        if (e.name.equals(localName)) {
+                        if (e != null && e.name != null && localName != null && e.name.equals(localName)) {
                             info = e;
                             break;
                         }
@@ -230,10 +265,14 @@ public class TestXmlGenerator {
                     if (child.isSimpleType) {
                         String prefixChild = generator.getDefaultNamespacePrefix();
                         String localChildName = child.name;
-                        if (child.name.contains(":")) {
+                        if (child.name != null && child.name.contains(":")) {
                             String[] parts = child.name.split(":");
-                            prefixChild = parts[0];
-                            localChildName = parts[1];
+                            if (parts.length == 2) {
+                                prefixChild = parts[0];
+                                localChildName = parts[1];
+                            } else {
+                                System.err.println("[WARN] Malformed child.name with colon: " + child.name);
+                            }
                         }
                         xml.append("  <").append(prefixChild).append(":").append(localChildName).append(">");
                         // Find the correct <xs:element> node for this child within the parent complexType
@@ -254,7 +293,15 @@ public class TestXmlGenerator {
                         // If this is a reference, resolve to the referenced global element
                         if (valueSchemaElement != null && valueSchemaElement.hasAttribute("ref")) {
                             String refName = valueSchemaElement.getAttribute("ref");
-                            String refLocal = refName.contains(":") ? refName.split(":")[1] : refName;
+                            String refLocal = refName;
+                            if (refName != null && refName.contains(":")) {
+                                String[] parts = refName.split(":");
+                                if (parts.length == 2) {
+                                    refLocal = parts[1];
+                                } else {
+                                    System.err.println("[WARN] Malformed refName with colon: " + refName);
+                                }
+                            }
                             if (generator.getGlobalElementDefinitions().containsKey(refLocal)) {
                                 valueSchemaElement = generator.getGlobalElementDefinitions().get(refLocal);
                             }
@@ -276,7 +323,12 @@ public class TestXmlGenerator {
                         xml.append(value);
                         xml.append("</").append(prefixChild).append(":").append(localChildName).append(">\n");
                     } else {
-                        addCompleteElementInstance(xml, child.name, child.isReference, childCount, elementNamespace, childSchemaElement);
+                        // Defensive: skip null/malformed child.name
+                        if (child.name == null || child.name.trim().isEmpty() || (child.name.contains(":") && child.name.split(":").length != 2)) {
+                            System.err.println("[WARN] addCompleteElementInstance (recursive): child.name is null, empty, or malformed: '" + child.name + "', skipping.");
+                        } else {
+                            addCompleteElementInstance(xml, child.name, child.isReference, childCount, elementNamespace, childSchemaElement);
+                        }
                     }
                 }
             } else if (isSimpleType) {
