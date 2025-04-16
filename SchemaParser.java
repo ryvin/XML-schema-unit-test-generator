@@ -335,13 +335,6 @@ private void indexGlobalGroupDefinitions(Document schemaDoc) {
             }
         }
     }
-}
-                    XMLSchemaTestGenerator.debug("Added global group definition: " + name);
-                }
-            }
-        }
-    }
-    
     /**
      * Find child elements for a given element, supporting all compositor types
      * and handling nested compositors
