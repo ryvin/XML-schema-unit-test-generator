@@ -1,3 +1,4 @@
 *.class
 test-output/
 *.log
+.windsurfrules

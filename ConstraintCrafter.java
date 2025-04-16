@@ -6,6 +6,11 @@ import org.w3c.dom.Element;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.charset.StandardCharsets;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.DocumentBuilder;
+import org.w3c.dom.Document;
+import org.w3c.dom.NamedNodeMap;
+import org.w3c.dom.Node;
 
 /**
  * Main entry point for ConstraintCrafter.
@@ -87,5 +92,32 @@ public class ConstraintCrafter {
 
     public static void debug(String msg) {
         System.out.println(msg);
+    }
+
+    // Parse XML file to Document
+    public Document parseXmlFile(String filePath) throws Exception {
+        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+        factory.setNamespaceAware(true);
+        DocumentBuilder builder = factory.newDocumentBuilder();
+        return builder.parse(new java.io.File(filePath));
+    }
+
+    // Extract namespace declarations from an element
+    public void extractNamespaces(Element element) {
+        NamedNodeMap attrs = element.getAttributes();
+        for (int i = 0; i < attrs.getLength(); i++) {
+            Node attr = attrs.item(i);
+            String name = attr.getNodeName();
+            if (name.startsWith("xmlns:")) {
+                String prefix = name.substring(6);
+                getNamespaceMap().put(prefix, attr.getNodeValue());
+                debug("Added namespace prefix mapping: " + prefix + " -> " + attr.getNodeValue());
+            }
+        }
+    }
+
+    // Delegate to SchemaParser for finding child elements
+    public Element findChildElement(Element parent, String localName) {
+        return SchemaParser.findChildElement(parent, localName);
     }
 }
