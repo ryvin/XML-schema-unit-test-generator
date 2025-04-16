@@ -294,77 +294,29 @@ public class SchemaParser {
             Element simpleType = (Element) simpleTypes.item(i);
             Node parent = simpleType.getParentNode();
             if (parent != null && (parent.getLocalName().equals("schema") || parent.getNodeName().equals("xs:schema"))) {
-            String name = simpleType.getAttribute("name");
-            if (!name.isEmpty()) {
-                typeDefinitions.put(name, simpleType);
-                XMLSchemaTestGenerator.log("[DEBUG] Registered global simpleType: " + name);
+                String name = simpleType.getAttribute("name");
+                if (!name.isEmpty()) {
+                    typeDefinitions.put(name, simpleType);
+                    XMLSchemaTestGenerator.log("[DEBUG] Registered global simpleType: " + name);
+                }
             }
-        }          }
         }
-        NodeList complexTypes = schemaDoc.getElementsByTagNameNS(XMLConstants.W3C_XML_SCHEMA_NS_URI, "complexType");
-        for (int i = 0; i < complexTypes.getLength(); i++) {
-            Element complexType = (Element) complexTypes.item(i);
-            Node parent = complexType.getParentNode();
-{{ ... }}
-        NodeList complexTypes = schemaDoc.getElementsByTagNameNS(XMLConstants.W3C_XML_SCHEMA_NS_URI, "complexType");
-        for (int i = 0; i < complexTypes.getLength(); i++) {
-            Element complexType = (Element) complexTypes.item(i);
-            Node parent = complexType.getParentNode();
-            if (parent != null && (parent.getLocalName().equals("schema") || parent.getNodeName().equals("xs:schema"))) {
+
+    NodeList complexTypes = schemaDoc.getElementsByTagNameNS(XMLConstants.W3C_XML_SCHEMA_NS_URI, "complexType");
+    for (int i = 0; i < complexTypes.getLength(); i++) {
+        Element complexType = (Element) complexTypes.item(i);
+        Node parent = complexType.getParentNode();
+        if (parent != null && (parent.getLocalName().equals("schema") || parent.getNodeName().equals("xs:schema"))) {
             String name = complexType.getAttribute("name");
             if (!name.isEmpty()) {
                 typeDefinitions.put(name, complexType);
                 XMLSchemaTestGenerator.log("[DEBUG] Registered global complexType: " + name);
             }
-        }          }
         }
-        // --- END PATCH ---
-        
-        // Process global elements
-        NodeList elements = schemaDoc.getElementsByTagNameNS(XMLConstants.W3C_XML_SCHEMA_NS_URI, "element");
-        for (int i = 0; i < elements.getLength(); i++) {
-            Element element = (Element) elements.item(i);
-            Node parent = element.getParentNode();
-            
-            // Check if this is a global element (direct child of schema)
-            if (parent != null &&
-                (parent.getLocalName().equals("schema") || parent.getNodeName().equals("xs:schema"))) {
-                String name = element.getAttribute("name");
-                if (!name.isEmpty()) {
-                    generator.getGlobalElementDefinitions().put(name, element);
-                    
-                    // Check for substitution group
-                    String substitutionGroup = element.getAttribute("substitutionGroup");
-                    if (!substitutionGroup.isEmpty()) {
-                        // Extract the local name if it's a qualified name
-                        String localName = substitutionGroup;
-                        if (substitutionGroup.contains(":")) {
-                            localName = substitutionGroup.substring(substitutionGroup.indexOf(":") + 1);
-                        }
-                        
-                        // Add to substitution group map
-                        if (!substitutionGroups.containsKey(localName)) {
-                            substitutionGroups.put(localName, new ArrayList<>());
-                        }
-                        substitutionGroups.get(localName).add(element);
-                        XMLSchemaTestGenerator.debug("Added element " + name + " to substitution group " + localName);
-                    }
-                    
-                    // Store child elements info
-                    List<ElementInfo> childElements = findChildElements(element);
-                    if (!childElements.isEmpty()) {
-                        generator.getGlobalElementsMap().put(name, childElements);
-                    }
-                }
-            }
-        }
-        
-        // Index all global simpleType and complexType definitions
-        indexGlobalTypeDefinitions(schemaDoc);
-        
-        // Index all global group definitions
-        indexGlobalGroupDefinitions(schemaDoc);
     }
+
+    // Index all global group definitions
+    indexGlobalGroupDefinitions(schemaDoc);
 }
 
 /**
@@ -375,8 +327,7 @@ private void indexGlobalGroupDefinitions(Document schemaDoc) {
     for (int i = 0; i < groups.getLength(); i++) {
         Element groupElem = (Element) groups.item(i);
         Node parent = groupElem.getParentNode();
-        if (parent != null &&
-            (parent.getLocalName().equals("schema") || parent.getNodeName().equals("xs:schema"))) {
+        if (parent != null && (parent.getLocalName().equals("schema") || parent.getNodeName().equals("xs:schema"))) {
             String name = groupElem.getAttribute("name");
             if (!name.isEmpty()) {
                 groupDefinitions.put(name, groupElem);
@@ -385,13 +336,6 @@ private void indexGlobalGroupDefinitions(Document schemaDoc) {
         }
     }
 }
-            Element groupElem = (Element) groups.item(i);
-            Node parent = groupElem.getParentNode();
-            if (parent != null &&
-                (parent.getLocalName().equals("schema") || parent.getNodeName().equals("xs:schema"))) {
-                String name = groupElem.getAttribute("name");
-                if (!name.isEmpty()) {
-                    groupDefinitions.put(name, groupElem);
                     XMLSchemaTestGenerator.debug("Added global group definition: " + name);
                 }
             }
