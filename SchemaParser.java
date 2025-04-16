@@ -340,67 +340,66 @@ private void indexGlobalGroupDefinitions(Document schemaDoc) {
      * Find child elements for a given element, supporting all compositor types
      * and handling nested compositors
      */
+    // This method should be defined at the class level, not inside another method
     public List<ElementInfo> findChildElements(Element element) {
         List<ElementInfo> childElements = new ArrayList<>();
-        
-        // Remember element name to avoid circular references
-        String elementId = element.getAttribute("name");
-        if (elementId.isEmpty()) {
-            elementId = element.getAttribute("ref");
-        }
-        
-        // Resolve references if this is a reference element
-        Element resolvedElement = element;
-        String refAttr = element.getAttribute("ref");
-        if (!refAttr.isEmpty()) {
-            // This is a reference - resolve it
-            resolvedElement = resolveReference(refAttr);
-            
-            if (resolvedElement != null) {
-                // We resolved the reference, now process the resolved element
-                elementId = resolvedElement.getAttribute("name");
-                
-                // Avoid circular references
-                if (resolvedReferences.contains(elementId)) {
-                    XMLSchemaTestGenerator.debug("Detected circular reference for element: " + elementId);
-                    return childElements;
-                }
-                
-                resolvedReferences.add(elementId);
-            } else {
-                // Failed to resolve reference
-                return childElements;
+        if (element == null) return childElements;
+
+        // Find complex type
+        Element complexType = findComplexType(element);
+        if (complexType == null) return childElements;
+
+        // Process all child elements in sequence/choice/all
+        NodeList sequences = complexType.getElementsByTagNameNS(XMLConstants.W3C_XML_SCHEMA_NS_URI, "sequence");
+        for (int i = 0; i < sequences.getLength(); i++) {
+            Element seq = (Element) sequences.item(i);
+            NodeList elements = seq.getElementsByTagNameNS(XMLConstants.W3C_XML_SCHEMA_NS_URI, "element");
+            for (int j = 0; j < elements.getLength(); j++) {
+                Element childElement = (Element) elements.item(j);
+                String name = childElement.getAttribute("name");
+                String ref = childElement.getAttribute("ref");
+                String minOccurs = childElement.getAttribute("minOccurs");
+                String maxOccurs = childElement.getAttribute("maxOccurs");
+
+                ElementInfo info = new ElementInfo();
+                info.name = !name.isEmpty() ? name : ref;
+                info.isReference = !ref.isEmpty();
+                info.minOccurs = minOccurs.isEmpty() ? 1 : Integer.parseInt(minOccurs);
+                info.maxOccurs = maxOccurs.isEmpty() ? 1 :
+                    maxOccurs.equals("unbounded") ? Integer.MAX_VALUE :
+                    Integer.parseInt(maxOccurs);
+                info.isSimpleType = isSimpleType(childElement);
+
+                childElements.add(info);
             }
         }
-        
-        // Check for complex type
-        Element complexType = findComplexType(resolvedElement);
-        if (complexType != null) {
-            // Process all compositors recursively (sequence, choice, all, group)
-            processCompositors(complexType, childElements);
-        }
-        
-        // Add elements from any substitution groups
-        if (!elementId.isEmpty() && substitutionGroups.containsKey(elementId)) {
-            List<Element> substitutes = substitutionGroups.get(elementId);
-            for (Element substitute : substitutes) {
-                String substituteName = substitute.getAttribute("name");
-                ElementInfo substitutionInfo = new ElementInfo();
-                substitutionInfo.name = substituteName;
-                substitutionInfo.isReference = false;
-                substitutionInfo.minOccurs = 0; // Substitutions are optional
-                substitutionInfo.maxOccurs = 1;
-                substitutionInfo.isSimpleType = determineIfSimpleType(substitute);
-                
-                childElements.add(substitutionInfo);
-                XMLSchemaTestGenerator.debug("Added substitution element: " + substituteName + " for " + elementId);
-            }
-        }
-        
-        // Clear resolved reference once we're done with this element
-        resolvedReferences.remove(elementId);
-        
         return childElements;
+    }
+
+    // Helper method to determine if element is a simple type
+    private boolean isSimpleType(Element element) {
+        if (element == null) return false;
+        String type = element.getAttribute("type");
+        if (type.isEmpty()) {
+            // Check for inline simple type
+            Element simpleType = findChildElement(element, "simpleType");
+            return simpleType != null;
+        }
+        // Check if type is a built-in XML Schema simple type or references a simple type
+        String localType = type.contains(":") ? type.substring(type.indexOf(":") + 1) : type;
+        return isSimpleTypeByName(localType);
+    }
+
+    // Check if a type name is a simple type
+    private boolean isSimpleTypeByName(String typeName) {
+        Set<String> simpleTypes = new HashSet<>(Arrays.asList(
+            "string", "boolean", "decimal", "float", "double", "integer",
+            "date", "time", "dateTime", "gYear", "gMonth", "gDay"
+        ));
+        if (simpleTypes.contains(typeName)) return true;
+        // Check if it's a user-defined simple type
+        Element typeDef = resolveTypeDefinition(typeName);
+        return typeDef != null && "simpleType".equals(typeDef.getLocalName());
     }
     
     /**
