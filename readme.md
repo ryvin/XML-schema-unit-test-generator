@@ -98,6 +98,36 @@ For an element with an enumeration constraint (`sedan`, `suv`, `hatchback`), the
 - **Negative Tests**:
   - `element_type_invalid.xml`: Contains an invalid value
 
+## Value Generation Logic
+
+The XML Schema Test Generator produces test values that are always derived from the schema itself. The value generation process works as follows:
+
+### Value Generation Flow
+
+```mermaid
+flowchart TD
+    A[Element/Attribute Node] --> B{Has Enumeration?}
+    B -- Yes --> C[Use enum value(s)]
+    B -- No --> D{Has Restrictions?}
+    D -- Yes --> E[Use value(s) matching/violating restrictions]
+    D -- No --> F{Recognized XSD Type?}
+    F -- Yes --> G[Use value for that type]
+    F -- No --> H[Use generic fallback value]
+```
+
+### Examples
+
+| Schema Definition                        | Positive Value | Negative Value         |
+|------------------------------------------|:--------------:|:---------------------:|
+| `<xs:enumeration>`                       | enum value     | value not in enum     |
+| `xs:integer min=1 max=5`                 | 3              | 0 or 6                |
+| `xs:string pattern="[A-Z]{3}"`          | "ABC"          | "abc" or "A1"         |
+| `xs:date`                                | "2023-01-01"   | "2023-13-01"          |
+
+### No Hardcoded Logic
+
+The generator never contains hardcoded values for specific schemas or domains. All values are determined dynamically from the schema’s definitions.
+
 ## Example Schema
 
 The generator works with schemas like this vehicle schema:
