@@ -3,6 +3,10 @@ import java.util.List;
 import org.w3c.dom.NodeList;
 import javax.xml.XMLConstants;
 
+/**
+ * Utility for generating XML values (element/attribute) based on schema constraints.
+ * Produces schema-accurate values for enumerations, patterns, min/max, and types.
+ */
 public class XmlValueHelper {
     private final SchemaParser schemaParser;
 
@@ -11,6 +15,11 @@ public class XmlValueHelper {
     }
 
     // Generate attribute value based on type or enumeration
+    /**
+     * Generate a value for an attribute based on schema constraints (enumeration, restriction, type).
+     * @param attrElem The XML schema attribute element.
+     * @return A valid value for the attribute.
+     */
     public String getAttributeValue(Element attrElem) {
         // Only use enumerations if this is an xs:attribute node (not element)
         if (!"attribute".equals(attrElem.getLocalName())) {
@@ -35,6 +44,11 @@ public class XmlValueHelper {
     }
 
     // Generate element value based on type or enumeration
+    /**
+     * Generate a value for an element based on schema constraints (enumeration, restriction, type).
+     * @param schemaElement The XML schema element.
+     * @return A valid value for the element.
+     */
     public String getElementValue(Element schemaElement) {
         if (schemaElement == null) return "";
         if (!"element".equals(schemaElement.getLocalName())) {
@@ -58,6 +72,10 @@ public class XmlValueHelper {
         
     }
 
+    /**
+     * Generate a value based on restrictions (pattern, min/max length, min/max inclusive, base type).
+     * Returns null if no restrictions are present.
+     */
     private String getValueFromRestrictions(Element element) {
         // Try to find inline simpleType
         Element simpleType = schemaParser.findChildElement(element, "simpleType");
@@ -77,7 +95,7 @@ public class XmlValueHelper {
         }
         if (restriction != null) {
             // Pattern
-            Element patternElem = schemaParser.generator.findChildElement(restriction, "pattern");
+            Element patternElem = schemaParser.findChildElement(restriction, "pattern");
             if (patternElem != null) {
                 String pattern = patternElem.getAttribute("value");
                 // Simple common patterns
@@ -128,6 +146,9 @@ public class XmlValueHelper {
         return null;
     }
 
+    /**
+     * Generate a value for a given XML schema type (e.g., string, int, date).
+     */
     private String getTypeBasedValue(String type) {
         if (type == null) return "";
         type = type.toLowerCase();

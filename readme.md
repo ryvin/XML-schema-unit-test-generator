@@ -37,7 +37,7 @@ The test generator uses a modular architecture for better maintainability:
 | `TestXmlGenerator.java` | Generates XML test files based on schema constraints |
 | `CardinalityTestGenerator.java` | Generates tests for cardinality constraints |
 | `EnumerationTestGenerator.java` | Generates tests for enumeration constraints |
-| `XmlValueHelper.java` | Utility for generating attribute and element values based on schema type or enumeration |
+| `XmlValueHelper.java` | Utility for generating attribute and element values based on schema type, restrictions, and enumerations |
 
 ## Installation
 
@@ -54,6 +54,18 @@ Run the generator with your XSD file as an argument:
 ```
 java XMLSchemaTestGenerator your-schema.xsd
 ```
+
+### Value Generation Logic
+
+- **Schema-Driven Values**: All generated values for XML elements and attributes are now derived directly from the schema's enumerations, patterns, length, and numeric constraints. There are no hardcoded or generic values (e.g., "SampleValue").
+- **Enumerations**: If an enumeration is present, the generator uses a valid value from the enumeration.
+- **Patterns & Lengths**: For pattern, minLength, maxLength, minInclusive, and maxInclusive restrictions, the generator produces a value that matches the constraint.
+- **Type-Aware**: If no restrictions are found, a value appropriate for the XML type (e.g., string, int, date, boolean) is generated.
+
+### Code Documentation
+
+- All major classes and methods are now documented with JavaDoc, explaining their purpose and usage.
+- Helper methods are clearly separated and described for maintainability.
 
 ### Output Structure
 

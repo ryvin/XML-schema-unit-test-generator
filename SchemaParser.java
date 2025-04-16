@@ -6,9 +6,18 @@ import org.w3c.dom.*;
 /**
  * Class for parsing XML Schema files and extracting information
  */
+/**
+ * Parses XML Schema files and provides utilities for extracting schema structure and constraints.
+ */
 public class SchemaParser {
     /**
      * Find child element by local name (delegates to generator)
+     */
+    /**
+     * Finds the first child element with the given local name.
+     * @param parent The parent element.
+     * @param localName The local name of the child to find.
+     * @return The child element, or null if not found.
      */
     public Element findChildElement(Element parent, String localName) {
         return generator.findChildElement(parent, localName);
@@ -19,12 +28,24 @@ public class SchemaParser {
     // Map to store all global type definitions (simpleType and complexType) by name
     private Map<String, Element> typeDefinitions = new HashMap<>();
     
+    /**
+     * Constructs the SchemaParser with a reference to the main generator.
+     * @param generator The main XMLSchemaTestGenerator instance.
+     */
     public SchemaParser(XMLSchemaTestGenerator generator) {
         this.generator = generator;
     }
     
     /**
      * Collect included and imported schema documents
+     */
+    /**
+     * Recursively collects included and imported schemas.
+     * @param schemaDoc The root schema document.
+     * @param baseSchemaFile Path to the base schema file.
+     * @param processedSchemas Set of already processed schema paths.
+     * @param schemaDocuments List to store all loaded schema documents.
+     * @throws Exception if any schema cannot be loaded.
      */
     public void collectIncludedSchemas(Document schemaDoc, String baseSchemaFile, 
                                       Set<String> processedSchemas, List<Document> schemaDocuments) throws Exception {
@@ -92,6 +113,10 @@ public class SchemaParser {
     /**
      * Find all global elements in the schema for reference resolution
      */
+    /**
+     * Finds and indexes all global elements and type definitions in the schema.
+     * @param schemaDoc The schema document.
+     */
     public void findAllGlobalElements(Document schemaDoc) {
         NodeList elements = schemaDoc.getElementsByTagNameNS(XMLConstants.W3C_XML_SCHEMA_NS_URI, "element");
         for (int i = 0; i < elements.getLength(); i++) {
@@ -142,6 +167,11 @@ public class SchemaParser {
     
     /**
      * Find child elements for a given element
+     */
+    /**
+     * Finds all child elements for a given element (handles complexType/sequence/choice/all).
+     * @param element The parent schema element.
+     * @return List of child element info.
      */
     public List<ElementInfo> findChildElements(Element element) {
         List<ElementInfo> childElements = new ArrayList<>();
@@ -224,6 +254,11 @@ public class SchemaParser {
     /**
      * Find enumeration values for an element or attribute
      */
+    /**
+     * Finds all enumeration values for an element or attribute.
+     * @param element The schema element or attribute.
+     * @return List of valid enumeration values.
+     */
     public List<String> findEnumerationValues(Element element) {
         
         List<String> values = new ArrayList<>();
@@ -268,6 +303,11 @@ public class SchemaParser {
     }
 
     // Resolve a type name to its global type definition element
+    /**
+     * Resolves a type name to its global type definition element.
+     * @param typeName The name of the type.
+     * @return The type definition element, or null if not found.
+     */
     public Element resolveTypeDefinition(String typeName) {
         if (typeDefinitions.containsKey(typeName)) {
             return typeDefinitions.get(typeName);
