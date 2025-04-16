@@ -110,14 +110,22 @@ public class TestXmlGenerator {
     // Updated to accept schemaElement for correct reference resolution
     public void addCompleteElementInstance(StringBuilder xml, String elementName, boolean isReference,
                                            int count, String namespace, Element schemaElement) {
+        System.err.println("CASCADE_DEBUG: addCompleteElementInstance entry - elementName='" + elementName + "'");
         // Defensive: handle null elementName
         if (elementName == null || elementName.trim().isEmpty()) {
             System.err.println("[WARN] addCompleteElementInstance: elementName is null or empty; skipping element.");
             return;
         }
+        // Debug logging to diagnose NPE
+        System.err.println("[DEBUG] addCompleteElementInstance: elementName='" + elementName + "'");
         // Defensive: skip malformed elementName (with colon but not two parts)
+        if (elementName == null || elementName.trim().isEmpty()) {
+            System.err.println("[WARN] addCompleteElementInstance: elementName is null or empty; skipping element.");
+            return;
+        }
         if (elementName.contains(":")) {
             String[] parts = elementName.split(":");
+            System.err.println("[DEBUG] elementName.split(':') length=" + parts.length);
             if (parts.length != 2) {
                 System.err.println("[WARN] addCompleteElementInstance: malformed elementName with colon: '" + elementName + "', skipping.");
                 return;
@@ -125,14 +133,23 @@ public class TestXmlGenerator {
         }
         // Extract prefix and local name
         String prefix = generator.getDefaultNamespacePrefix();
+        if (prefix == null || "null".equals(prefix)) {
+            System.err.println("[WARN] Namespace prefix is null or 'null' string, using no prefix.");
+            prefix = "";
+        }
         String localName = elementName;
         if (elementName != null && elementName.contains(":")) {
             String[] parts = elementName.split(":");
-            if (parts.length == 2) {
-                prefix = parts[0];
-                localName = parts[1];
-            } else {
-                System.err.println("[WARN] Malformed elementName with colon: " + elementName);
+            if (parts == null || parts.length != 2) {
+                System.err.println("[WARN] addCompleteElementInstance: parts is null or not length 2 for elementName='" + elementName + "', skipping.");
+                return;
+            }
+            prefix = parts[0];
+            localName = parts[1];
+            System.err.println("[DEBUG] Parsed prefix='" + prefix + "', localName='" + localName + "'");
+            if (prefix == null || localName == null) {
+                System.err.println("[WARN] addCompleteElementInstance: prefix or localName is null after split, skipping.");
+                return;
             }
         }
         
@@ -231,7 +248,11 @@ public class TestXmlGenerator {
             }
 
             // Add opening tag with attributes if any
-            xml.append("  <").append(prefix).append(":").append(localName).append(attrBuilder).append(">\n");
+            if (prefix != null && !prefix.trim().isEmpty()) {
+                xml.append("  <").append(prefix).append(":").append(localName).append(attrBuilder).append(">\n");
+            } else {
+                xml.append("  <").append(localName).append(attrBuilder).append(">\n");
+            }
 
             if (children != null && !children.isEmpty()) {
                 // Complex type: always add all required children recursively, no text content
@@ -337,7 +358,11 @@ public class TestXmlGenerator {
                 xml.append("    ").append(value).append("\n");
             }
             // Close the element
-            xml.append("  </").append(prefix).append(":").append(localName).append(">\n");
+            if (prefix != null && !prefix.trim().isEmpty()) {
+                xml.append("  </").append(prefix).append(":").append(localName).append(">\n");
+            } else {
+                xml.append("  </").append(localName).append(">\n");
+            }
         }
     }
     

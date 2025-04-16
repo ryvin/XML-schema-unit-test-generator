@@ -1,8 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ProcurementDocument xmlns="" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation=" schemas/vehicles.xsd">
-  <SchemaVersionUsed>INVALID_1744780588715</SchemaVersionUsed>
-  <ProcurementInstrumentForm>DD 428</ProcurementInstrumentForm>
-  <OriginatorDetails>SampleValue</OriginatorDetails>
-  <AwardInstrument>SampleValue</AwardInstrument>
-  <AwardModificationInstrument>SampleValue</AwardModificationInstrument>
-</ProcurementDocument>
+<null:ProcurementDocument xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <null:SchemaVersionUsed>INVALID_1744785870567</null:SchemaVersionUsed>
+</null:ProcurementDocument>

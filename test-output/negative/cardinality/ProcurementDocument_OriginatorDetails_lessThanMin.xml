@@ -1,15 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ProcurementDocument>
   <SchemaVersionUsed>
-    SampleValue
+    2.7
   </SchemaVersionUsed>
   <ProcurementInstrumentForm>
-    SampleValue
+    DD 428
   </ProcurementInstrumentForm>
-  <AwardInstrument>
-    SampleValue
-  </AwardInstrument>
-  <AwardModificationInstrument>
-    SampleValue
-  </AwardModificationInstrument>
 </ProcurementDocument>
