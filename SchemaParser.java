@@ -14,7 +14,7 @@ import org.w3c.dom.*;
 public class SchemaParser {
     // New no-argument constructor for modular ConstraintCrafter usage
     public SchemaParser() {
-        this.generator = null;
+        this.generator = new ConstraintCrafter();
     }
     /**
      * Parses the given XSD file and builds a ConstraintModel (new modular architecture).
