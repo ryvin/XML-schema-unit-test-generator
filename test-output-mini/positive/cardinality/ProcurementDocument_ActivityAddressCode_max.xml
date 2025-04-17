@@ -3,9 +3,6 @@
   <OriginatorDetails>
     1
   </OriginatorDetails>
-  <OriginatorDetails>
-    1
-  </OriginatorDetails>
   <InternalDocumentNumber>
     1
   </InternalDocumentNumber>
@@ -24,6 +21,9 @@
   <NonDoDEntityIdentifier>
     1
   </NonDoDEntityIdentifier>
+  <ActivityAddressCode>
+    1
+  </ActivityAddressCode>
   <SystemName>
     1
   </SystemName>
@@ -54,6 +54,9 @@
   <NonDoDEntityIdentifier>
     1
   </NonDoDEntityIdentifier>
+  <ActivityAddressCode>
+    1
+  </ActivityAddressCode>
   <SystemName>
     1
   </SystemName>
@@ -69,10 +72,16 @@
   <NonDoDEntityIdentifier>
     1
   </NonDoDEntityIdentifier>
+  <ActivityAddressCode>
+    1
+  </ActivityAddressCode>
   <SystemName>
     1
   </SystemName>
   <SystemVersion>
     1
   </SystemVersion>
+  <ActivityAddressCode>
+    1
+  </ActivityAddressCode>
 </ProcurementDocument>

@@ -19,7 +19,9 @@ public class XmlValueHelper {
      * Generate appropriate value for an attribute based on its definition
      */
     public String getAttributeValue(Element attrElem) {
-        if (attrElem == null) return "SampleValue";
+        if (attrElem == null) {
+            return generateValueForType(null);
+        }
         
         // First check if this attribute has enumeration values
         List<String> attrEnums = schemaParser.findEnumerationValues(attrElem);
@@ -42,8 +44,8 @@ public class XmlValueHelper {
      */
     public String getElementValue(Element schemaElement) {
         if (schemaElement == null) {
-            ConstraintCrafter.debug("getElementValue: schemaElement is null, returning SampleValue");
-            return "SampleValue";
+            ConstraintCrafter.debug("getElementValue: schemaElement is null, generating fallback value");
+            return generateValueForType(null);
         }
         
         // First check if this element has enumeration values
@@ -56,8 +58,7 @@ public class XmlValueHelper {
                     return value;
                 }
             }
-            ConstraintCrafter.debug("getElementValue: All enum values were empty for element '" + schemaElement.getAttribute("name") + "'. Returning SampleValue");
-            return "SampleValue";
+            // No direct enums, continue to type/pattern-based value generation
         }
 
         // --- PATCH: Always resolve type attribute if present, or from parent <complexType> if missing ---
@@ -99,8 +100,6 @@ public class XmlValueHelper {
                             return value;
                         }
                     }
-                    ConstraintCrafter.debug("getElementValue: All type enum values were empty for element '" + schemaElement.getAttribute("name") + "'. Returning SampleValue");
-                    return "SampleValue";
                 }
             } else {
                 ConstraintCrafter.debug("No typeDef found for type: " + type);
@@ -119,8 +118,6 @@ public class XmlValueHelper {
                         return value;
                     }
                 }
-                ConstraintCrafter.debug("getElementValue: All inline simpleType enum values were empty for element '" + schemaElement.getAttribute("name") + "'. Returning SampleValue");
-                return "SampleValue";
             }
         } else {
             // Parent <complexType> logic (as previously patched)
@@ -144,8 +141,6 @@ public class XmlValueHelper {
                                             return value;
                                         }
                                     }
-                                    ConstraintCrafter.debug("getElementValue: All parent complexType inline enum values were empty for element '" + childName + "'. Returning SampleValue");
-                                    return "SampleValue";
                                 }
                             }
                             Element simpleContent = SchemaParser.findChildElement(el, "simpleContent");
@@ -161,8 +156,6 @@ public class XmlValueHelper {
                                                 return value;
                                             }
                                         }
-                                        ConstraintCrafter.debug("getElementValue: All parent complexType restriction enum values were empty for element '" + childName + "'. Returning SampleValue");
-                                        return "SampleValue";
                                     }
                                 }
                             }
@@ -180,8 +173,6 @@ public class XmlValueHelper {
                                                 return value;
                                             }
                                         }
-                                        ConstraintCrafter.debug("getElementValue: All parent complexType enum values were empty for element '" + childName + "'. Returning SampleValue");
-                                        return "SampleValue";
                                     }
                                 }
                             }
@@ -294,14 +285,30 @@ public class XmlValueHelper {
 
     // Utility: generate a string matching a simple pattern (placeholder, real impl should use regexgen)
     private String generateStringMatchingPattern(String pattern, Integer minLength, Integer maxLength) {
-        // For demo: if pattern is [A-Z]{n}, produce n uppercase letters
-        if (pattern.matches("\\[A-Z\\]\\{\\d+\\}")) {
-            int n = Integer.parseInt(pattern.replaceAll(".*\\{(\\d+)\\}.*", "$1"));
-            return generateFixedLengthString(n);
+        if (pattern == null || pattern.isEmpty()) {
+            int len = (minLength != null) ? minLength : 3;
+            return generateFixedLengthString(len);
         }
-        // Fallback: just use fixed length string
-        int len = (minLength != null) ? minLength : 3;
-        return generateFixedLengthString(len);
+        StringBuilder sb = new StringBuilder();
+        java.util.regex.Matcher literalMatcher = java.util.regex.Pattern.compile("^(.*?)\\[").matcher(pattern);
+        if (literalMatcher.find()) {
+            sb.append(literalMatcher.group(1));
+        }
+        if (pattern.contains("[A-Z]")) {
+            sb.append("A");
+        }
+        java.util.regex.Matcher countMatcher = java.util.regex.Pattern.compile("\\{(\\d+)\\}").matcher(pattern);
+        while (countMatcher.find()) {
+            int count = Integer.parseInt(countMatcher.group(1));
+            for (int i = 0; i < count; i++) {
+                sb.append('1');
+            }
+        }
+        if (sb.length() == 0) {
+            int lenFallback = (minLength != null) ? minLength : 3;
+            return generateFixedLengthString(lenFallback);
+        }
+        return sb.toString();
     }
     
     /**

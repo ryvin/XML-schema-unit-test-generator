@@ -55,34 +55,6 @@ public class SchemaParser {
     // Map to store all global type definitions (simpleType and complexType) by name
     public static Map<String, Element> typeDefinitions = new HashMap<>(); // Global type definitions
 
-    
-    private Map<String, String> prefixToNamespaceMap = new HashMap<>();
-    private Map<String, Element> groupDefinitions = new HashMap<>();
-    private ConstraintCrafter generator;
-    // Local cache for enumeration values (for modular ConstraintCrafter usage)
-    private final Map<String, List<String>> enumValueCache = new HashMap<>();
-
-    /**
-     * Find a child element by local name (generator-independent)
-     */
-    // Utility method for finding child elements by local name
-    public static Element findChildElement(Element parent, String localName) {
-        if (parent == null) return null;
-        NodeList children = parent.getChildNodes();
-        for (int i = 0; i < children.getLength(); i++) {
-            Node child = children.item(i);
-            if (child.getNodeType() == Node.ELEMENT_NODE && localName.equals(child.getLocalName())) {
-                return (Element) child;
-            }
-        }
-        return null;
-    }
-
-    public SchemaParser(ConstraintCrafter generator) {
-        this.generator = generator;
-    }
-
-    // --- Restriction extraction helpers for XmlValueHelper ---
     /**
      * Finds the pattern facet for a given type name, or null if not present.
      */
@@ -125,54 +97,81 @@ public class SchemaParser {
         }
         return null;
     }
+
     /**
-     * Finds the minInclusive facet for a given type name, or null if not present.
+     * Finds the restriction element for a given type name (simpleType or complexType/simpleContent)
      */
-    public String findMinInclusiveForType(String type) {
-        Element restriction = findRestrictionForType(type);
-        if (restriction != null) {
-            NodeList minInc = restriction.getElementsByTagNameNS(XMLConstants.W3C_XML_SCHEMA_NS_URI, "minInclusive");
-            if (minInc.getLength() > 0) {
-                Element minElem = (Element) minInc.item(0);
-                return minElem.getAttribute("value");
-            }
-        }
-        return null;
-    }
-    /**
-     * Finds the maxInclusive facet for a given type name, or null if not present.
-     */
-    public String findMaxInclusiveForType(String type) {
-        Element restriction = findRestrictionForType(type);
-        if (restriction != null) {
-            NodeList maxInc = restriction.getElementsByTagNameNS(XMLConstants.W3C_XML_SCHEMA_NS_URI, "maxInclusive");
-            if (maxInc.getLength() > 0) {
-                Element maxElem = (Element) maxInc.item(0);
-                return maxElem.getAttribute("value");
-            }
-        }
-        return null;
-    }
-    /**
-     * Helper: find the <restriction> element for a type name
-     */
-    private Element findRestrictionForType(String type) {
-        if (type == null || type.isEmpty()) return null;
-        String typeName = type.contains(":") ? type.split(":")[1] : type;
-        Element typeDef = resolveTypeDefinition(typeName);
-        if (typeDef != null && typeDef.getLocalName().equals("simpleType")) {
-            // Look for <restriction> child
-            NodeList children = typeDef.getChildNodes();
-            for (int i = 0; i < children.getLength(); i++) {
-                Node child = children.item(i);
-                if (child.getNodeType() == Node.ELEMENT_NODE && "restriction".equals(child.getLocalName())) {
-                    return (Element) child;
-                }
+    public Element findRestrictionForType(String typeName) {
+        if (typeName == null || typeName.isEmpty()) return null;
+        String localType = typeName.contains(":") ? typeName.substring(typeName.indexOf(":") + 1) : typeName;
+        Element typeDef = typeDefinitions.get(localType);
+        if (typeDef == null) return null;
+        if ("simpleType".equals(typeDef.getLocalName())) {
+            return findChildElement(typeDef, "restriction");
+        } else if ("complexType".equals(typeDef.getLocalName())) {
+            Element simpleContent = findChildElement(typeDef, "simpleContent");
+            if (simpleContent != null) {
+                return findChildElement(simpleContent, "restriction");
             }
         }
         return null;
     }
 
+    /**
+     * Get minInclusive facet for a given type
+     */
+    public String findMinInclusiveForType(String type) {
+        Element restriction = findRestrictionForType(type);
+        if (restriction != null) {
+            NodeList nodes = restriction.getElementsByTagNameNS(XMLConstants.W3C_XML_SCHEMA_NS_URI, "minInclusive");
+            if (nodes.getLength() > 0) {
+                return ((Element)nodes.item(0)).getAttribute("value");
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Get maxInclusive facet for a given type
+     */
+    public String findMaxInclusiveForType(String type) {
+        Element restriction = findRestrictionForType(type);
+        if (restriction != null) {
+            NodeList nodes = restriction.getElementsByTagNameNS(XMLConstants.W3C_XML_SCHEMA_NS_URI, "maxInclusive");
+            if (nodes.getLength() > 0) {
+                return ((Element)nodes.item(0)).getAttribute("value");
+            }
+        }
+        return null;
+    }
+
+    private Map<String, String> prefixToNamespaceMap = new HashMap<>();
+    private Map<String, Element> groupDefinitions = new HashMap<>();
+    private ConstraintCrafter generator;
+    // Local cache for enumeration values (for modular ConstraintCrafter usage)
+    private final Map<String, List<String>> enumValueCache = new HashMap<>();
+
+    /**
+     * Find a child element by local name (generator-independent)
+     */
+    // Utility method for finding child elements by local name
+    public static Element findChildElement(Element parent, String localName) {
+        if (parent == null) return null;
+        NodeList children = parent.getChildNodes();
+        for (int i = 0; i < children.getLength(); i++) {
+            Node child = children.item(i);
+            if (child.getNodeType() == Node.ELEMENT_NODE && localName.equals(child.getLocalName())) {
+                return (Element) child;
+            }
+        }
+        return null;
+    }
+
+    public SchemaParser(ConstraintCrafter generator) {
+        this.generator = generator;
+    }
+
+    // --- Restriction extraction helpers for XmlValueHelper ---
     /**
      * Collect included and imported schema documents
      */
@@ -648,87 +647,87 @@ public class SchemaParser {
         return values;
     }
 
-/**
- * Find enumeration values for a global type name (simpleType)
- */
-public List<String> findEnumerationValuesForType(String typeName) {
-    List<String> values = new ArrayList<>();
-    if (typeName == null || typeName.isEmpty()) return values;
-    // Remove namespace prefix if present
-    String localType = typeName.contains(":") ? typeName.substring(typeName.indexOf(":") + 1) : typeName;
-    Element typeDef = typeDefinitions.get(localType);
-    if (typeDef == null) {
-        ConstraintCrafter.debug("findEnumerationValuesForType: No typeDef found for typeName '" + typeName + "' (local: '" + localType + "'). Available: " + typeDefinitions.keySet());
-        return values;
-    }
-    if (typeDef.getLocalName().equals("simpleType")) {
-        values.addAll(findEnumerationsInSimpleType(typeDef));
-    } else if (typeDef.getLocalName().equals("complexType")) {
-        // Check for simpleContent restriction
-        Element simpleContent = generator.findChildElement(typeDef, "simpleContent");
-        if (simpleContent != null) {
-            Element restriction = generator.findChildElement(simpleContent, "restriction");
-            if (restriction != null) {
-                // Direct enumerations in restriction
-                NodeList enums = restriction.getElementsByTagNameNS(XMLConstants.W3C_XML_SCHEMA_NS_URI, "enumeration");
-                for (int i = 0; i < enums.getLength(); i++) {
-                    Element enumeration = (Element) enums.item(i);
-                    values.add(enumeration.getAttribute("value"));
-                }
-                // If no direct enums, try base type
-                if (values.isEmpty()) {
-                    String base = restriction.getAttribute("base");
-                    if (base != null && !base.isEmpty()) {
-                        ConstraintCrafter.debug("findEnumerationValuesForType: complexType with simpleContent, checking base type '" + base + "'");
-                        values.addAll(findEnumerationValuesForType(base));
+    /**
+     * Find enumeration values for a global type name (simpleType)
+     */
+    public List<String> findEnumerationValuesForType(String typeName) {
+        List<String> values = new ArrayList<>();
+        if (typeName == null || typeName.isEmpty()) return values;
+        // Remove namespace prefix if present
+        String localType = typeName.contains(":") ? typeName.substring(typeName.indexOf(":") + 1) : typeName;
+        Element typeDef = typeDefinitions.get(localType);
+        if (typeDef == null) {
+            ConstraintCrafter.debug("findEnumerationValuesForType: No typeDef found for typeName '" + typeName + "' (local: '" + localType + "'). Available: " + typeDefinitions.keySet());
+            return values;
+        }
+        if (typeDef.getLocalName().equals("simpleType")) {
+            values.addAll(findEnumerationsInSimpleType(typeDef));
+        } else if (typeDef.getLocalName().equals("complexType")) {
+            // Check for simpleContent restriction
+            Element simpleContent = generator.findChildElement(typeDef, "simpleContent");
+            if (simpleContent != null) {
+                Element restriction = generator.findChildElement(simpleContent, "restriction");
+                if (restriction != null) {
+                    // Direct enumerations in restriction
+                    NodeList enums = restriction.getElementsByTagNameNS(XMLConstants.W3C_XML_SCHEMA_NS_URI, "enumeration");
+                    for (int i = 0; i < enums.getLength(); i++) {
+                        Element enumeration = (Element) enums.item(i);
+                        values.add(enumeration.getAttribute("value"));
+                    }
+                    // If no direct enums, try base type
+                    if (values.isEmpty()) {
+                        String base = restriction.getAttribute("base");
+                        if (base != null && !base.isEmpty()) {
+                            ConstraintCrafter.debug("findEnumerationValuesForType: complexType with simpleContent, checking base type '" + base + "'");
+                            values.addAll(findEnumerationValuesForType(base));
+                        }
                     }
                 }
             }
         }
+        ConstraintCrafter.log("[DEBUG] findEnumerationValuesForType: For type '" + typeName + "' found enums: " + values);
+        return values;
     }
-    ConstraintCrafter.log("[DEBUG] findEnumerationValuesForType: For type '" + typeName + "' found enums: " + values);
-    return values;
-}
 
-/**
- * Extract enumeration values from a <simpleType> definition.
- * Handles both direct <restriction> children and nested structures.
- */
-private List<String> findEnumerationsInSimpleType(Element simpleType) {
-    List<String> values = new ArrayList<>();
-    if (simpleType == null) return values;
-    // Look for <restriction> child
-    NodeList children = simpleType.getChildNodes();
-    for (int i = 0; i < children.getLength(); i++) {
-        Node child = children.item(i);
-        if (child.getNodeType() == Node.ELEMENT_NODE && "restriction".equals(child.getLocalName())) {
-            Element restriction = (Element) child;
-            // Find all <enumeration> children
-            NodeList enums = restriction.getElementsByTagNameNS(XMLConstants.W3C_XML_SCHEMA_NS_URI, "enumeration");
-            for (int j = 0; j < enums.getLength(); j++) {
-                Element enumElem = (Element) enums.item(j);
-                String val = enumElem.getAttribute("value");
-                if (val != null && !val.isEmpty()) {
-                    values.add(val);
+    /**
+     * Extract enumeration values from a <simpleType> definition.
+     * Handles both direct <restriction> children and nested structures.
+     */
+    private List<String> findEnumerationsInSimpleType(Element simpleType) {
+        List<String> values = new ArrayList<>();
+        if (simpleType == null) return values;
+        // Look for <restriction> child
+        NodeList children = simpleType.getChildNodes();
+        for (int i = 0; i < children.getLength(); i++) {
+            Node child = children.item(i);
+            if (child.getNodeType() == Node.ELEMENT_NODE && "restriction".equals(child.getLocalName())) {
+                Element restriction = (Element) child;
+                // Find all <enumeration> children
+                NodeList enums = restriction.getElementsByTagNameNS(XMLConstants.W3C_XML_SCHEMA_NS_URI, "enumeration");
+                for (int j = 0; j < enums.getLength(); j++) {
+                    Element enumElem = (Element) enums.item(j);
+                    String val = enumElem.getAttribute("value");
+                    if (val != null && !val.isEmpty()) {
+                        values.add(val);
+                    }
                 }
             }
         }
+        return values;
     }
-    return values;
-}
 
-/**
- * Resolve a type name to its global type definition element
- */
-public Element resolveTypeDefinition(String typeName) {
-    ConstraintCrafter.debug("resolveTypeDefinition: Available typeDefinitions: " + typeDefinitions.keySet());
-    return typeDefinitions.get(typeName);
-}
+    /**
+     * Resolve a type name to its global type definition element
+     */
+    public Element resolveTypeDefinition(String typeName) {
+        ConstraintCrafter.debug("resolveTypeDefinition: Available typeDefinitions: " + typeDefinitions.keySet());
+        return typeDefinitions.get(typeName);
+    }
 
-/**
- * Gets the namespace URI for a prefix
- */
-public String getNamespaceForPrefix(String prefix) {
-    return prefixToNamespaceMap.get(prefix);
-}
+    /**
+     * Gets the namespace URI for a prefix
+     */
+    public String getNamespaceForPrefix(String prefix) {
+        return prefixToNamespaceMap.get(prefix);
+    }
 }

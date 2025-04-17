@@ -1,18 +1,75 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ProcurementDocument>
-  <SchemaVersionUsed>
-    SampleValue
-  </SchemaVersionUsed>
-  <ProcurementInstrumentForm>
-    SampleValue
-  </ProcurementInstrumentForm>
   <OriginatorDetails>
-    SampleValue
+    1
   </OriginatorDetails>
+  <InternalDocumentNumber>
+    1
+  </InternalDocumentNumber>
+  <DoDSystem>
+    1
+  </DoDSystem>
+  <DITPRNumber>
+    1
+  </DITPRNumber>
+  <SystemAdministratorDoDAAC>
+    1
+  </SystemAdministratorDoDAAC>
+  <NonDoDSystem>
+    1
+  </NonDoDSystem>
+  <NonDoDEntityIdentifier>
+    1
+  </NonDoDEntityIdentifier>
+  <SystemName>
+    1
+  </SystemName>
+  <SystemVersion>
+    1
+  </SystemVersion>
   <AwardInstrument>
-    SampleValue
+    1
   </AwardInstrument>
   <AwardModificationInstrument>
-    SampleValue
+    1
   </AwardModificationInstrument>
+  <InternalDocumentNumber>
+    1
+  </InternalDocumentNumber>
+  <DoDSystem>
+    1
+  </DoDSystem>
+  <DITPRNumber>
+    1
+  </DITPRNumber>
+  <SystemAdministratorDoDAAC>
+    1
+  </SystemAdministratorDoDAAC>
+  <NonDoDSystem>
+    1
+  </NonDoDSystem>
+  <NonDoDEntityIdentifier>
+    1
+  </NonDoDEntityIdentifier>
+  <SystemName>
+    1
+  </SystemName>
+  <SystemVersion>
+    1
+  </SystemVersion>
+  <DITPRNumber>
+    1
+  </DITPRNumber>
+  <SystemAdministratorDoDAAC>
+    1
+  </SystemAdministratorDoDAAC>
+  <NonDoDEntityIdentifier>
+    1
+  </NonDoDEntityIdentifier>
+  <SystemName>
+    1
+  </SystemName>
+  <SystemVersion>
+    1
+  </SystemVersion>
 </ProcurementDocument>

@@ -17,6 +17,8 @@ public class OutputManager {
     public void saveTestCase(TestCase testCase) {
         try {
             File outFile = new File(outputDirectory, testCase.getName() + ".xml");
+            // create parent dirs for nested paths
+            outFile.getParentFile().mkdirs();
             try (FileWriter fw = new FileWriter(outFile)) {
                 fw.write(testCase.getXmlContent());
             }

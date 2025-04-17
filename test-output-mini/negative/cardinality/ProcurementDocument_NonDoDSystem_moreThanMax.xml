@@ -3,9 +3,6 @@
   <OriginatorDetails>
     1
   </OriginatorDetails>
-  <OriginatorDetails>
-    1
-  </OriginatorDetails>
   <InternalDocumentNumber>
     1
   </InternalDocumentNumber>
@@ -18,6 +15,9 @@
   <SystemAdministratorDoDAAC>
     1
   </SystemAdministratorDoDAAC>
+  <NonDoDSystem>
+    1
+  </NonDoDSystem>
   <NonDoDSystem>
     1
   </NonDoDSystem>
@@ -48,6 +48,9 @@
   <SystemAdministratorDoDAAC>
     1
   </SystemAdministratorDoDAAC>
+  <NonDoDSystem>
+    1
+  </NonDoDSystem>
   <NonDoDSystem>
     1
   </NonDoDSystem>

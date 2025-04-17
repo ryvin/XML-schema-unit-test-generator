@@ -10,6 +10,7 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NamedNodeMap;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.nio.charset.StandardCharsets;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.DocumentBuilder;
@@ -24,6 +25,7 @@ public class ConstraintCrafter {
     // Store global element definitions and their child info
     private Map<String, Element> globalElementDefinitions = new HashMap<>();
     private Map<String, List<ElementInfo>> globalElementsMap = new HashMap<>();
+    private String outputDir;
 
     public static void main(String[] args) {
         if (args.length < 2) {
@@ -33,6 +35,7 @@ public class ConstraintCrafter {
         ConstraintCrafter crafter = new ConstraintCrafter();
         File xsdFile = new File(args[0]);
         String outputDir = args[1];
+        crafter.setOutputDir(outputDir);
 
         // Parse schema
         SchemaParser parser = new SchemaParser(crafter);
@@ -89,7 +92,11 @@ public class ConstraintCrafter {
     // Write XML content to a file
     public void writeTestFile(String fileName, String xml) {
         try {
-            Files.write(Paths.get(fileName), xml.getBytes(StandardCharsets.UTF_8));
+            // Write under configured outputDir, strip default prefix if present
+            String relative = fileName.startsWith("test-output/") ? fileName.substring("test-output/".length()) : fileName;
+            Path path = Paths.get(outputDir, relative);
+            Files.createDirectories(path.getParent());
+            Files.write(path, xml.getBytes(StandardCharsets.UTF_8));
             log("[ConstraintCrafter] Wrote test file: " + fileName);
         } catch (Exception e) {
             e.printStackTrace();
@@ -155,5 +162,9 @@ public class ConstraintCrafter {
     // Delegate to SchemaParser for finding child elements
     public Element findChildElement(Element parent, String localName) {
         return SchemaParser.findChildElement(parent, localName);
+    }
+
+    public void setOutputDir(String outputDir) {
+        this.outputDir = outputDir;
     }
 }
