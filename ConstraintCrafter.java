@@ -2,15 +2,19 @@ import java.io.File;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.Set;
+import java.util.HashSet;
+import java.util.ArrayList;
 import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NamedNodeMap;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.charset.StandardCharsets;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.DocumentBuilder;
 import org.w3c.dom.Document;
-import org.w3c.dom.NamedNodeMap;
-import org.w3c.dom.Node;
+import javax.xml.parsers.ParserConfigurationException;
 
 /**
  * Main entry point for ConstraintCrafter.
@@ -22,31 +26,59 @@ public class ConstraintCrafter {
             System.out.println("Usage: java ConstraintCrafter <schema.xsd> <outputDir>");
             System.exit(1);
         }
+        ConstraintCrafter crafter = new ConstraintCrafter();
         File xsdFile = new File(args[0]);
         String outputDir = args[1];
 
         // Parse schema
-        SchemaParser parser = new SchemaParser();
+        SchemaParser parser = new SchemaParser(crafter);
         ConstraintModel model = parser.parseSchema(xsdFile);
 
-        // Generate test cases
-        TestCaseGenerator generator = new TestCaseGenerator();
-        List<TestCase> positiveTests = generator.generatePositiveTestCases(model);
-        List<TestCase> negativeTests = generator.generateNegativeTestCases(model);
-
-        System.out.println("[ConstraintCrafter] Positive test cases: " + positiveTests.size());
-        System.out.println("[ConstraintCrafter] Negative test cases: " + negativeTests.size());
-        System.out.println("[ConstraintCrafter] Output directory: " + outputDir);
-        if (positiveTests.isEmpty() && negativeTests.isEmpty()) {
-            System.out.println("[ConstraintCrafter] WARNING: No test cases generated. Check your schema or parsing logic.");
+        // Load XML Document and collect definitions
+        Document schemaDoc = null;
+        try {
+            schemaDoc = crafter.parseXmlFile(xsdFile.getAbsolutePath());
+            parser.collectIncludedSchemas(schemaDoc, xsdFile.getAbsolutePath(), new HashSet<>(), new ArrayList<>());
+            parser.findAllGlobalElements(schemaDoc);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
 
-        // Save test cases
-        OutputManager outputManager = new OutputManager(outputDir);
-        outputManager.saveAllTestCases(positiveTests);
-        outputManager.saveAllTestCases(negativeTests);
+        // Enumeration test cases
+        TestCaseGenerator caseGen = new TestCaseGenerator();
+        List<TestCase> positiveEnumTests = caseGen.generatePositiveTestCases(model);
+        List<TestCase> negativeEnumTests = caseGen.generateNegativeTestCases(model);
 
-        // (Optional) Validation step can be added here
+        // Save enumeration tests
+        OutputManager outputManager = new OutputManager(outputDir);
+        outputManager.saveAllTestCases(positiveEnumTests);
+        outputManager.saveAllTestCases(negativeEnumTests);
+        System.out.println("[ConstraintCrafter] Enumeration: +" + positiveEnumTests.size() + " tests, -" + negativeEnumTests.size() + " tests");
+
+        // Cardinality tests
+        CardinalityTestGenerator cardGen = new CardinalityTestGenerator(crafter);
+        String targetNamespace = schemaDoc != null ? schemaDoc.getDocumentElement().getAttribute("targetNamespace") : "";
+        for (String elementName : crafter.getGlobalElementDefinitions().keySet()) {
+            Element element = crafter.getGlobalElementDefinitions().get(elementName);
+            try {
+                cardGen.generateCardinalityTests(elementName, element, targetNamespace, xsdFile.getAbsolutePath());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        // Structured enumeration tests
+        EnumerationTestGenerator enumGen = new EnumerationTestGenerator(crafter);
+        for (String elementName : crafter.getGlobalElementDefinitions().keySet()) {
+            Element element = crafter.getGlobalElementDefinitions().get(elementName);
+            try {
+                enumGen.generateEnumerationTests(elementName, element, targetNamespace, xsdFile.getAbsolutePath());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        System.out.println("[ConstraintCrafter] Cardinality and structured enumeration tests generated.");
         System.out.println("Test case generation complete. See output in: " + outputDir);
     }
 
