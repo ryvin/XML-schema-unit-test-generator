@@ -21,6 +21,10 @@ import javax.xml.parsers.ParserConfigurationException;
  * Orchestrates schema parsing, test generation, output, and (optional) validation.
  */
 public class ConstraintCrafter {
+    // Store global element definitions and their child info
+    private Map<String, Element> globalElementDefinitions = new HashMap<>();
+    private Map<String, List<ElementInfo>> globalElementsMap = new HashMap<>();
+
     public static void main(String[] args) {
         if (args.length < 2) {
             System.out.println("Usage: java ConstraintCrafter <schema.xsd> <outputDir>");
@@ -97,14 +101,14 @@ public class ConstraintCrafter {
         log("[ConstraintCrafter] validateAgainstSchema called for " + fileName + ", schema " + schemaFile + ", expectValid=" + expectValid);
     }
 
-    // Get child elements map (stub)
+    // Get child elements map
     public Map<String, List<ElementInfo>> getGlobalElementsMap() {
-        return new HashMap<>();
+        return this.globalElementsMap;
     }
 
-    // Get global element definitions map (stub)
+    // Get global element definitions map
     public Map<String, Element> getGlobalElementDefinitions() {
-        return new HashMap<>();
+        return this.globalElementDefinitions;
     }
 
     // Get namespace prefix map (stub)

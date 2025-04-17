@@ -311,6 +311,21 @@ public class SchemaParser {
 
     // Index all global group definitions
     indexGlobalGroupDefinitions(schemaDoc);
+    
+    // Register all global elements and their child ElementInfo lists
+    NodeList allElements = schemaDoc.getElementsByTagNameNS(XMLConstants.W3C_XML_SCHEMA_NS_URI, "element");
+    for (int i = 0; i < allElements.getLength(); i++) {
+        Element elem = (Element) allElements.item(i);
+        if (elem.getParentNode() == schemaDoc.getDocumentElement()) {
+            String name = elem.getAttribute("name");
+            if (!name.isEmpty()) {
+                generator.getGlobalElementDefinitions().put(name, elem);
+                List<ElementInfo> children = findChildElements(elem);
+                generator.getGlobalElementsMap().put(name, children);
+                ConstraintCrafter.log("[DEBUG] Registered element '" + name + "' with children count: " + children.size());
+            }
+        }
+    }
     }
 
     /**
@@ -341,6 +356,15 @@ public class SchemaParser {
 
         // Find complex type
         Element complexType = findComplexType(element);
+        if (complexType == null && element.hasAttribute("type")) {
+            String typeAttr = element.getAttribute("type");
+            String localType = typeAttr.contains(":") ? typeAttr.split(":")[1] : typeAttr;
+            Element typeDef = resolveTypeDefinition(localType);
+            if (typeDef != null && "complexType".equals(typeDef.getLocalName())) {
+                complexType = typeDef;
+                ConstraintCrafter.debug("Resolved complexType for element '" + element.getAttribute("name") + "': " + localType);
+            }
+        }
         if (complexType == null) return childElements;
 
         // Process all child elements in sequence/choice/all
@@ -552,24 +576,6 @@ public class SchemaParser {
     }
     
     /**
-            String[] parts = ref.split(":");
-            prefix = parts[0];
-            localName = parts[1];
-            
-            // Get namespace for this prefix
-            targetNamespace = prefixToNamespaceMap.get(prefix);
-        }
-        
-        // Try to find in global elements
-        if (generator.getGlobalElementDefinitions().containsKey(localName)) {
-            return generator.getGlobalElementDefinitions().get(localName);
-        }
-        
-        ConstraintCrafter.log("Could not resolve element reference: " + ref);
-        return null;
-    }
-    
-    /**
      * Resolve a group reference
      */
     private Element resolveGroupReference(String ref) {
@@ -605,7 +611,25 @@ public class SchemaParser {
         // If the element has a type attribute, resolve and extract enumerations from the referenced global <simpleType>
         String typeAttr = element.getAttribute("type");
         if (typeAttr != null && !typeAttr.isEmpty()) {
+            // Accept both "xs:string" and "string" (with or without prefix)
             String typeName = typeAttr.contains(":") ? typeAttr.split(":")[1] : typeAttr;
+
+            // Check if it's a built-in XSD simple type
+            Set<String> xsdSimpleTypes = new HashSet<>(Arrays.asList(
+                "string", "boolean", "decimal", "float", "double", "duration", "dateTime", "time",
+                "date", "gYearMonth", "gYear", "gMonthDay", "gDay", "gMonth", "hexBinary",
+                "base64Binary", "anyURI", "QName", "NOTATION", "normalizedString", "token",
+                "language", "IDREFS", "ENTITIES", "NMTOKEN", "NMTOKENS", "Name", "NCName",
+                "ID", "IDREF", "ENTITY", "integer", "nonPositiveInteger", "negativeInteger",
+                "long", "int", "short", "byte", "nonNegativeInteger", "unsignedLong",
+                "unsignedInt", "unsignedShort", "unsignedByte", "positiveInteger"
+            ));
+
+            if (xsdSimpleTypes.contains(typeName)) {
+                return values;
+            }
+
+            // Check if it's a user-defined simple type
             Element typeDef = resolveTypeDefinition(typeName);
             if (typeDef != null) {
                 if (typeDef.getLocalName().equals("simpleType")) {
