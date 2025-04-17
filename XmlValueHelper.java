@@ -216,7 +216,13 @@ public class XmlValueHelper {
         if (minLength != null || maxLength != null) {
             int len = (minLength != null) ? minLength : 1;
             if (maxLength != null && len > maxLength) len = maxLength;
-            return generateFixedLengthString(len);
+            // Use a recognizable string for test output
+            String base = "TestValue";
+            StringBuilder sb = new StringBuilder();
+            while (sb.length() < len) {
+                sb.append(base);
+            }
+            return sb.substring(0, len);
         }
         // Numeric range restrictions
         if (minInclusive != null || maxInclusive != null) {
@@ -244,7 +250,7 @@ public class XmlValueHelper {
         if (localType.endsWith("NMTOKEN")) {
             return "NMTOKEN123";
         } else if (localType.endsWith("string") || localType.endsWith("normalizedString") || localType.endsWith("token")) {
-            return "ABC";
+            return "SampleString";
         } else if (localType.endsWith("int") || localType.endsWith("integer") || localType.endsWith("positiveInteger")) {
             return "1";
         } else if (localType.endsWith("decimal") || localType.endsWith("float") || localType.endsWith("double")) {
